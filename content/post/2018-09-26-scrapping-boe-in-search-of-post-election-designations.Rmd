@@ -13,7 +13,7 @@ output:
     css: "test.css"
 ---
 
-Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of designations in the highest levels of administration.
+Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of dessignations in the highest levels of administration.
 
 I want to quantify this by counting the dessignations and cessations published in [BOE](www.boe.es)  (Official State Gazette) with R.
 
@@ -48,7 +48,7 @@ plot(g)
 
 ```
 
-As can be seen two of these _administration eartquakes_ ocurred in this decade, the first after general elections of 26th November 2011 when Mariano Rajoy (PP, conservative) swept put José Luis Rodríguez Zapatero (PSOE, progressive). The last one was just a few month ago when Mariano Rajoy was defeated in a motion of no confidence and removed from goverment.
+As can be seen two of these _administration earthquakes_ ocurred in this decade, the first after general elections of 26th November 2011 when Mariano Rajoy (PP, conservative) swept out José Luis Rodríguez Zapatero (PSOE, progressive). The last one was just a few months ago when Mariano Rajoy was defeated in a motion of no confidence and removed from goverment.
 
-This one changed in spanish adminsitration lead to four month of frantic activity of dessignatios and cessetions, with june 2018 as the most active month in this decade.
+This one change in spanish administration lead to four months of frantic activity of dessignatios and cessetions, with june 2018 as the most active month in this decade.
 
