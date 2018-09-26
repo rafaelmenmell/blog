@@ -1,0 +1,46 @@
+---
+title: Scrapping BOE in search of post election designations
+author: RMM
+date: '2018-09-26'
+slug: scrapping-boe-in-search-of-post-election-designations
+categories:
+  - R
+  - politics
+  - scrapping
+tags: []
+---
+
+
+
+<p>Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of designations in the highest levels of administration.</p>
+<p>I want to quantify this by counting the dessignations and cessations published in <a href="www.boe.es">BOE</a> (Official State Gazette) with R.</p>
+<pre class="r"><code>suppressPackageStartupMessages(library(XML))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(dplyr))
+
+CuentaNombramientos &lt;- function(fecha){
+  path &lt;- sprintf(&quot;https://boe.es/diario_boe/xml.php?id=BOE-S-%s&quot;,fecha)
+  resumen_boe_xml &lt;- XML::xmlParse(file = readLines(path))
+  top &lt;- xmlRoot(resumen_boe_xml)
+  if (xmlValue(top[[1]][[1]])!=&quot;No se encontró el sumario original.&quot;){
+    nombramientos &lt;- getNodeSet(top[[2]],&quot;//diario//seccion[@num=&#39;2A&#39;]//departamento[@nombre!=&#39;UNIVERSIDADES&#39;]//epigrafe[@nombre=&#39;Nombramientos&#39;]//item&quot;)
+    ceses &lt;- getNodeSet(top[[2]],&quot;//diario//seccion[@num=&#39;2A&#39;]//departamento[@nombre!=&#39;UNIVERSIDADES&#39;]//epigrafe[@nombre=&#39;Ceses&#39;]//item&quot;)
+    return(list(nombramientos=length(nombramientos),ceses=length(ceses))) 
+  } else {
+    return(list(nombramientos=0,ceses=0))
+  }
+}
+
+fechas &lt;- as.character(seq(from=as.Date(&quot;2010-01-01&quot;),to=Sys.Date(),by=&quot;1 day&quot;),format=&quot;%Y%m%d&quot;)
+nombramientos &lt;- data.frame(fecha=fechas,nombramientos=NA,ceses=NA)
+l.resultados &lt;- purrr::map(nombramientos$fecha,CuentaNombramientos)
+nombramientos$nombramientos &lt;- bind_rows(l.resultados)$nombramientos
+nombramientos$ceses &lt;- bind_rows(l.resultados)$ceses
+nombramientos$fecha &lt;- as.Date(nombramientos$fecha,format=&quot;%Y%m%d&quot;)
+nomb.mes &lt;- nombramientos %&gt;% dplyr::group_by(fecha=format(fecha,&quot;%Y-%m&quot;)) %&gt;% dplyr::summarise(dessignations=sum(nombramientos),cessations=-1*sum(ceses)) %&gt;% dplyr::mutate(year=substr(fecha,1,4),mes=substr(fecha,6,7)) %&gt;% tidyr::gather(key=&quot;acto&quot;,value=&quot;total&quot;,2:3)
+g &lt;- ggplot(nomb.mes) + geom_bar(aes(x=mes,y=total,fill=acto,group=acto),stat=&quot;identity&quot;) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ylab(&quot;Total dessignations and cessations&quot;) + facet_grid(year~.) + labs(caption=&quot;Source: BOE&quot;) + xlab(&quot;month&quot;)
+
+plot(g)</code></pre>
+<p><img src="/post/2018-09-26-scrapping-boe-in-search-of-post-election-designations_files/figure-html/boe-1.png" width="768" /></p>
+<p>As can be seen two of these <em>administration eartquakes</em> ocurred in this decade, the first after general elections of 26th November 2011 when Mariano Rajoy (PP, conservative) swept put José Luis Rodríguez Zapatero (PSOE, progressive). The last one was just a few month ago when Mariano Rajoy was defeated in a motion of no confidence and removed from goverment.</p>
+<p>This one changed in spanish adminsitration lead to four month of frantic activity of dessignatios and cessetions, with june 2018 as the most active month in this decade.</p>
