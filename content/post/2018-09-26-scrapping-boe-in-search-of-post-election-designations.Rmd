@@ -8,9 +8,6 @@ categories:
   - politics
   - scrapping
 tags: []
-output:
-  html_document:
-    css: "test.css"
 ---
 
 Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of dessignations in the highest levels of administration.
