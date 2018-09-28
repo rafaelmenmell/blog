@@ -1,13 +1,13 @@
 ---
-title: Scrapping BOE in search of post election designations
-author: RMM
+title: "Scrapping BOE in search of post election designations"
+author: "RMM"
 date: '2018-09-26'
 slug: scrapping-boe-in-search-of-post-election-designations
-categories:
-  - R
-  - politics
-  - scrapping
 tags: []
+categories:
+- R
+- politics
+- scrapping
 ---
 
 Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of dessignations in the highest levels of administration.
