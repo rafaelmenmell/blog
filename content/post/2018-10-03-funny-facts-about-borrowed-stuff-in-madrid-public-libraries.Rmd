@@ -1,0 +1,108 @@
+---
+title: Funny facts about borrowed stuff in Madrid public libraries
+author: RMM
+date: '2018-10-03'
+slug: funny-facts-about-borrowed-stuff-in-madrid-public-libraries
+categories:
+  - R
+  - scrapping
+  - Books
+tags: []
+---
+
+As a regular user of Madrid public libraries I'm glad of having found data about borrowed stuff.
+So let's take a look at it and answer a couple of questions.
+
+Miguel de Cervantes Prize is one of the most richest literary prizes and the most prestigious of the prizes to writers in spanish.
+
+So, what's the impact in the popularity of a writer measured by the number of borrowing in public libraries?
+
+```{r libraries, echo=TRUE,fig.height=6,fig.width=8, cache=TRUE}
+library(dplyr)
+library(lubridate)
+library(dygraphs)
+library(XML)
+library(ggplot2)
+library(tidyr)
+library(htmlwidgets)
+library(htmltools)
+
+master <- readLines("http://datos.madrid.es/egob/catalogo/212700-0-bibliotecas-prestamos-historico.dcat")
+master <- master[grepl("accessURL",master)]
+master <- gsub(pattern = " ",replacement = "",master)
+master <- gsub('<.*?>','',master)
+master <- master[grepl("csv",master)]
+
+rawdata <- vector("list",length(master))
+n <- 1
+for (url in master){
+  rawdata[[n]] <- read.csv(file = url,header = TRUE,sep = ";",quote = '"',fileEncoding = "latin1",colClasses = "character")
+  #nos vamos a quedar con el tipo de objeto T; texto monografías (más o menos libros)
+  if ("prcocs" %in% colnames(rawdata[[n]])){
+    rawdata[[n]] <- rawdata[[n]] %>% filter(prcocs=="T    ")
+  }
+  if ("phcocs" %in% colnames(rawdata[[n]])){
+    rawdata[[n]] <- rawdata[[n]] %>% filter(phcocs=="T    ") %>% rename(prcocs=phcocs)
+  }
+  if ("phadul" %in% colnames(rawdata[[n]])){
+    rawdata[[n]] <- rawdata[[n]] %>% rename(pradul=phadul)
+  }
+  if ("prbarc" %in% colnames(rawdata[[n]])){
+    rawdata[[n]] <- rawdata[[n]] %>% select(prbarc,prfpre,tiauto,pradul)
+  } else {
+    rawdata[[n]] <- rawdata[[n]] %>% select(phbarc,phfpre,tiauto,pradul)
+  }
+  colnames(rawdata[[n]]) <- c("codigo","fecha","autor","infantil")
+  n <- n + 1
+}
+
+rawdata.df <- bind_rows(rawdata)
+rawdata.df <- rawdata.df[grepl("../../..",rawdata.df$fecha),]
+rawdata.df$fecha <- dmy(rawdata.df$fecha)
+rawdata.df <- rawdata.df[complete.cases(rawdata.df),]
+
+#vamos a hacer un gráfico con gráficos diarios que siempre es bonito
+# prestamos.diarios <- rawdata.df %>% dplyr::group_by(fecha) %>% summarise(prestamos=n())
+# xts.prestamos.diarios <- xts::xts(x = prestamos.diarios$prestamos,order.by = prestamos.diarios$fecha)
+# dy <- dygraph(data=xts.prestamos.diarios) %>% dyRangeSelector()
+#2014 Goytisolo, Juan
+cerv2014 <- rawdata.df[grepl("Goytisolo, Juan",rawdata.df$autor),]
+cerv2014 <- cerv2014 %>% group_by(fecha) %>% summarise(prestamos2014=n())
+
+cerv2015 <- rawdata.df[grepl("Paso",rawdata.df$autor),]
+cerv2015 <- cerv2015[grepl("Fernando",cerv2015$autor),]
+cerv2015 <- cerv2015 %>% group_by(fecha) %>% summarise(prestamos2015=n())
+
+cerv2016 <- rawdata.df[grepl("Mendoza, Eduardo",rawdata.df$autor),]
+cerv2016 <- cerv2016 %>% group_by(fecha) %>% summarise(prestamos2016=n())
+
+cerv2017 <- rawdata.df[grepl("Ramírez, Sergio",rawdata.df$autor),]
+cerv2017 <- cerv2017 %>% group_by(fecha) %>% summarise(prestamos2017=n())
+
+cerv <- full_join(cerv2014,cerv2015,by="fecha")
+cerv <- full_join(cerv,cerv2016,by="fecha")
+cerv <- full_join(cerv,cerv2017,by="fecha")
+cerv.graf <- cerv %>% gather(key = year,value = prestamos,2:5)
+
+xts.2014 <- xts::xts(x = cerv2014$prestamos2014,order.by = cerv2014$fecha)
+colnames(xts.2014) <- "prestamos"
+dy2014 <- dygraph(xts.2014,group = "cervantes",height = 400,main="Premio Cervantes 2014 - Juan Goytisolo") %>% dyEvent("2014-11-24","Fallo") %>% dyEvent("2015-04-23","Entrega") %>% dyEvent("2017-06-04","Muerte") %>% dyRangeSelector() %>% dySeries(name = "prestamos",label = "Juan Goytisolo") %>% dyOptions(stepPlot = TRUE)
+
+xts.2015 <- xts::xts(x = cerv2015$prestamos2015,order.by = cerv2015$fecha)
+colnames(xts.2015) <- "prestamos"
+dy2015 <- dygraph(xts.2015,group = "cervantes",height = 400,main="Premio Cervantes 2015 - Fernando del Paso") %>% dyEvent("2015-11-12","Fallo") %>% dyEvent("2016-04-23","Entrega") %>% dyRangeSelector() %>% dySeries(name = "prestamos",label = "Fernado del Paso") %>% dyOptions(stepPlot = TRUE)
+
+xts.2016 <- xts::xts(x = cerv2016$prestamos2016,order.by = cerv2016$fecha)
+colnames(xts.2016) <- "prestamos"
+dy2016 <- dygraph(xts.2016,group = "cervantes",height = 400,main="Premio Cervantes 2016 - Eduardo Mendoza") %>% dyEvent("2016-11-30","Fallo") %>% dyEvent("2017-04-23","Entrega") %>% dyRangeSelector() %>% dySeries(name = "prestamos",label = "Eduardo Mendoza") %>% dyOptions(stepPlot = TRUE)
+
+bdy <- browsable(tagList(dy2014,dy2015,dy2016))
+bdy
+```
+
+Finally another fact, who is the most borrowed author in Madrid public libraries? Dedicated to my 7 years old son.
+
+```{r geronimo, echo=TRUE,fig.height=6,fig.width=8, dependson="libraries"}
+top.autores <- rawdata.df %>% filter(autor!="") %>% group_by(autor) %>% summarise(total=100*n()/nrow(rawdata.df)) %>% arrange(-total)
+head(top.autores)
+```
