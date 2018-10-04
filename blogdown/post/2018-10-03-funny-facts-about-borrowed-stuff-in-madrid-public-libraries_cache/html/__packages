@@ -1,0 +1,16 @@
+base
+crayon
+dplyr
+DBI
+RPostgreSQL
+RSQLite
+lubridate
+reshape2
+meteologica
+dygraphs
+XML
+ggplot2
+tidyr
+htmlwidgets
+htmltools
+bindrcpp
