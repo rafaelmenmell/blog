@@ -17,15 +17,15 @@ Miguel de Cervantes Prize is one of the most richest literary prizes and the mos
 
 So, what's the impact in the popularity of a writer measured by the number of borrowing in public libraries?
 
-```{r libraries, echo=TRUE,fig.height=6,fig.width=8, cache=TRUE}
-library(dplyr)
-library(lubridate)
-library(dygraphs)
-library(XML)
-library(ggplot2)
-library(tidyr)
-library(htmlwidgets)
-library(htmltools)
+```{r libraries, echo=TRUE,fig.height=6,fig.width=8, cache=TRUE, warning=FALSE}
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(dygraphs))
+suppressPackageStartupMessages(library(XML))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(htmlwidgets))
+suppressPackageStartupMessages(library(htmltools))
 
 master <- readLines("http://datos.madrid.es/egob/catalogo/212700-0-bibliotecas-prestamos-historico.dcat")
 master <- master[grepl("accessURL",master)]
@@ -39,10 +39,10 @@ for (url in master){
   rawdata[[n]] <- read.csv(file = url,header = TRUE,sep = ";",quote = '"',fileEncoding = "latin1",colClasses = "character")
   #nos vamos a quedar con el tipo de objeto T; texto monografías (más o menos libros)
   if ("prcocs" %in% colnames(rawdata[[n]])){
-    rawdata[[n]] <- rawdata[[n]] %>% filter(prcocs=="T    ")
+    rawdata[[n]] <- rawdata[[n]] %>% dplyr::filter(prcocs=="T    ")
   }
   if ("phcocs" %in% colnames(rawdata[[n]])){
-    rawdata[[n]] <- rawdata[[n]] %>% filter(phcocs=="T    ") %>% rename(prcocs=phcocs)
+    rawdata[[n]] <- rawdata[[n]] %>% dplyr::filter(phcocs=="T    ") %>% rename(prcocs=phcocs)
   }
   if ("phadul" %in% colnames(rawdata[[n]])){
     rawdata[[n]] <- rawdata[[n]] %>% rename(pradul=phadul)
@@ -100,9 +100,10 @@ bdy <- browsable(tagList(dy2014,dy2015,dy2016))
 bdy
 ```
 
+
 Finally another fact, who is the most borrowed author in Madrid public libraries? Dedicated to my 7 years old son.
 
 ```{r geronimo, echo=TRUE,fig.height=6,fig.width=8, dependson="libraries"}
-top.autores <- rawdata.df %>% filter(autor!="") %>% group_by(autor) %>% summarise(total=100*n()/nrow(rawdata.df)) %>% arrange(-total)
+top.autores <- rawdata.df %>% dplyr::filter(autor!="") %>% group_by(autor) %>% summarise(total=100*n()/nrow(rawdata.df)) %>% arrange(-total)
 head(top.autores)
 ```
