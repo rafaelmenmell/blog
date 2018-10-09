@@ -20,7 +20,7 @@ Sometimes you just feel the urge to recreate some data analysis that you find in
 
 And here you have some code to play with this beautiful data set. It's a little tricky because its codification has changed several times in the last years.
 
-```{r boe, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE,results='hide'}
+```{r nacimientos1, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE,results='hide'}
 #nacimientos
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(ggplot2))
@@ -71,9 +71,10 @@ TraduceNacimientos <- function(file,year){
   nacimientos <- suppressMessages(read_fwf(file = file,col_positions = fwf_widths(columnas.ancho,columnas.name),progress = TRUE))
   return(nacimientos)
 }
+```
 
 #Edad de los padres y peso del nacido entre 1996 y 2015
-
+```{r nacimientos2, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE, dependson="nacimientos1",results="hide"}
 years <- 1996:2015
 nacimientos <- vector("list",length(years))
 n <- 1
@@ -84,6 +85,9 @@ for (y in years){
   n <- n+1
 }
 nacimientos <- bind_rows(nacimientos)
+```
+
+```{r nacimientos2a, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE, dependson="nacimientos2",results="hide"}
 g1 <- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title="Edad media de las madres",subtitle="Nacimientos 1996-2015",caption="Fuente: INE") + xlab("Año")
 
 print(g1)
@@ -95,8 +99,10 @@ print(g2)
 g4 <- ggplot(data=nacimientos,aes(x=as.factor(EDADM),y=PESON)) + geom_boxplot(outlier.alpha = 0.1) + labs(title="Peso medio de los nacidos según edad de la madre",subtitle="Nacimientos 1996-2015",caption="Fuente: INE") + xlab("Edad")
 
 print(g4)
+```
 
 #edad de las madres primerizas extendido
+```{r nacimientos3, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE, dependson="nacimientos1", results="hide"}
 years <- 1975:2015
 nacimientosP <- vector("list",length(years))
 n <- 1
@@ -121,6 +127,9 @@ for (y in years){
   n <- n+1
 }
 nacimientos <- bind_rows(nacimientosP)
+```
+
+```{r nacimientos4, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE, dependson="nacimientos3"}
 g1 <- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title="Edad media de las madres primerizas",subtitle="Nacimientos 1975-2015",caption="Fuente: INE") + xlab("Año")
 
 print(g1)

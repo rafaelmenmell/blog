@@ -72,11 +72,10 @@ TraduceNacimientos &lt;- function(file,year){
   }
   nacimientos &lt;- suppressMessages(read_fwf(file = file,col_positions = fwf_widths(columnas.ancho,columnas.name),progress = TRUE))
   return(nacimientos)
-}
-
-#Edad de los padres y peso del nacido entre 1996 y 2015
-
-years &lt;- 1996:2015
+}</code></pre>
+<div id="edad-de-los-padres-y-peso-del-nacido-entre-1996-y-2015" class="section level1">
+<h1>Edad de los padres y peso del nacido entre 1996 y 2015</h1>
+<pre class="r"><code>years &lt;- 1996:2015
 nacimientos &lt;- vector(&quot;list&quot;,length(years))
 n &lt;- 1
 for (y in years){
@@ -85,21 +84,23 @@ for (y in years){
   nacimientos[[n]] &lt;- as.data.frame(sapply( nacimientos[[n]], as.numeric ))
   n &lt;- n+1
 }
-nacimientos &lt;- bind_rows(nacimientos)
-g1 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de las madres&quot;,subtitle=&quot;Nacimientos 1996-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
+nacimientos &lt;- bind_rows(nacimientos)</code></pre>
+<pre class="r"><code>g1 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de las madres&quot;,subtitle=&quot;Nacimientos 1996-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
 
 print(g1)</code></pre>
-<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/boe-1.png" width="768" /></p>
+<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos2a-1.png" width="768" /></p>
 <pre class="r"><code>g2 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADP)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de los padres&quot;,subtitle=&quot;Nacimientos 1996-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
 
 print(g2)</code></pre>
-<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/boe-2.png" width="768" /></p>
+<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos2a-2.png" width="768" /></p>
 <pre class="r"><code>g4 &lt;- ggplot(data=nacimientos,aes(x=as.factor(EDADM),y=PESON)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Peso medio de los nacidos según edad de la madre&quot;,subtitle=&quot;Nacimientos 1996-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Edad&quot;)
 
 print(g4)</code></pre>
-<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/boe-3.png" width="768" /></p>
-<pre class="r"><code>#edad de las madres primerizas extendido
-years &lt;- 1975:2015
+<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos2a-3.png" width="768" /></p>
+</div>
+<div id="edad-de-las-madres-primerizas-extendido" class="section level1">
+<h1>edad de las madres primerizas extendido</h1>
+<pre class="r"><code>years &lt;- 1975:2015
 nacimientosP &lt;- vector(&quot;list&quot;,length(years))
 n &lt;- 1
 for (y in years){
@@ -122,11 +123,11 @@ for (y in years){
   nacimientosP[[n]] &lt;- as.data.frame(sapply( nacimientosP[[n]], as.numeric ))
   n &lt;- n+1
 }
-nacimientos &lt;- bind_rows(nacimientosP)
-g1 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de las madres primerizas&quot;,subtitle=&quot;Nacimientos 1975-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
+nacimientos &lt;- bind_rows(nacimientosP)</code></pre>
+<pre class="r"><code>g1 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de las madres primerizas&quot;,subtitle=&quot;Nacimientos 1975-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
 
 print(g1)</code></pre>
-<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/boe-4.png" width="768" /></p>
+<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos4-1.png" width="768" /></p>
 <pre class="r"><code>nacimientos10 &lt;- nacimientos %&gt;% dplyr::filter(ANOPAR %in% seq(1975,2015,10))
 nacimientos10$year &lt;- as.factor(nacimientos10$ANOPAR)
 
@@ -134,4 +135,5 @@ nacimientos10.age &lt;- nacimientos10 %&gt;% dplyr::group_by(year,EDADM) %&gt;% 
 
 g3 &lt;- ggplot(nacimientos10.age) + geom_line(aes(x=EDADM,y=total,color=year))+ labs(title=&quot;Births by age of mother&quot;,subtitle=&quot;Births 1975-2015&quot;,caption=&quot;Source: INE&quot;) + xlab(&quot;Age&quot;) + ylab(&quot;Total births&quot;)
 print(g3)</code></pre>
-<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/boe-5.png" width="768" /></p>
+<p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos4-2.png" width="768" /></p>
+</div>
