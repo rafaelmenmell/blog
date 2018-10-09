@@ -20,7 +20,7 @@ Sometimes you just feel the urge to recreate some data analysis that you find in
 
 And here you have some code to play with this beautiful data set. It's a little tricky because its codification has changed several times in the last years.
 
-```{r boe, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE}
+```{r boe, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE,results='hide'}
 #nacimientos
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(ggplot2))
