@@ -85,7 +85,10 @@ for (y in years){
   n &lt;- n+1
 }
 nacimientos &lt;- bind_rows(nacimientos)</code></pre>
-<pre class="r"><code>g1 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de las madres&quot;,subtitle=&quot;Nacimientos 1996-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
+<pre class="r"><code>suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(readr))
+g1 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de las madres&quot;,subtitle=&quot;Nacimientos 1996-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
 
 plot(g1)</code></pre>
 <p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos2a-1.png" width="768" /></p>
@@ -121,7 +124,10 @@ for (y in years){
   n &lt;- n+1
 }
 nacimientos &lt;- bind_rows(nacimientosP)</code></pre>
-<pre class="r"><code>g1 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de las madres primerizas&quot;,subtitle=&quot;Nacimientos 1975-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
+<pre class="r"><code>suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(readr))
+g1 &lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&quot;Edad media de las madres primerizas&quot;,subtitle=&quot;Nacimientos 1975-2015&quot;,caption=&quot;Fuente: INE&quot;) + xlab(&quot;Año&quot;)
 
 plot(g1)</code></pre>
 <p><img src="/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos4-1.png" width="768" /></p>
