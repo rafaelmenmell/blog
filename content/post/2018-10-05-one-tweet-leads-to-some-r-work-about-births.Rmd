@@ -20,7 +20,7 @@ Sometimes you just feel the urge to recreate some data analysis that you find in
 
 And here you have some code to play with this beautiful data set. It's a little tricky because its codification has changed several times in the last years.
 
-```{r boe, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE, results="hide"}
+```{r boe, echo=TRUE,fig.height=6,fig.width=8, message=FALSE, warning=FALSE}
 #nacimientos
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(ggplot2))
@@ -42,7 +42,7 @@ DescargaNacimientos <- function(year){
   if (year %in% 1975:1979){
     url <- sprintf("ftp://www.ine.es/temas/mnp_nacim/datos%%20nacimientos%%20%s.zip",substr(year,3,4))
   }
-  download.file(url = url,destfile = "nacimientos.zip",method = "curl",quiet = TRUE)
+  download.file(url = url,destfile = "nacimientos.zip",quiet = TRUE)
   filename <- unzip(zipfile = "nacimientos.zip",list = TRUE)$Name
   unzip("nacimientos.zip")
   unlink("nacimientos.zip")
@@ -78,7 +78,7 @@ years <- 1996:2015
 nacimientos <- vector("list",length(years))
 n <- 1
 for (y in years){
-  nacimientos[[n]] <- DescargaNacimientos(year = y)
+  nacimientos[[n]] <- suppressMessages(DescargaNacimientos(year = y))
   nacimientos[[n]] <- nacimientos[[n]] %>% select(ANOPAR,EDADM,EDADP,PESON)
   nacimientos[[n]] <- as.data.frame(sapply( nacimientos[[n]], as.numeric ))
   n <- n+1
@@ -86,15 +86,15 @@ for (y in years){
 nacimientos <- bind_rows(nacimientos)
 g1 <- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title="Edad media de las madres",subtitle="Nacimientos 1996-2015",caption="Fuente: INE") + xlab("Año")
 
-plot(g1)
+print(g1)
 
 g2 <- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADP)) + geom_boxplot(outlier.alpha = 0.1) + labs(title="Edad media de los padres",subtitle="Nacimientos 1996-2015",caption="Fuente: INE") + xlab("Año")
 
-plot(g2)
+print(g2)
 
 g4 <- ggplot(data=nacimientos,aes(x=as.factor(EDADM),y=PESON)) + geom_boxplot(outlier.alpha = 0.1) + labs(title="Peso medio de los nacidos según edad de la madre",subtitle="Nacimientos 1996-2015",caption="Fuente: INE") + xlab("Edad")
 
-plot(g4)
+print(g4)
 
 #edad de las madres primerizas extendido
 years <- 1975:2015
@@ -123,7 +123,7 @@ for (y in years){
 nacimientos <- bind_rows(nacimientosP)
 g1 <- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title="Edad media de las madres primerizas",subtitle="Nacimientos 1975-2015",caption="Fuente: INE") + xlab("Año")
 
-plot(g1)
+print(g1)
 
 nacimientos10 <- nacimientos %>% dplyr::filter(ANOPAR %in% seq(1975,2015,10))
 nacimientos10$year <- as.factor(nacimientos10$ANOPAR)
@@ -131,7 +131,7 @@ nacimientos10$year <- as.factor(nacimientos10$ANOPAR)
 nacimientos10.age <- nacimientos10 %>% dplyr::group_by(year,EDADM) %>% dplyr::summarise(total=n())
 
 g3 <- ggplot(nacimientos10.age) + geom_line(aes(x=EDADM,y=total,color=year))+ labs(title="Births by age of mother",subtitle="Births 1975-2015",caption="Source: INE") + xlab("Age") + ylab("Total births")
-plot(g3)
+print(g3)
 
 ```
 
