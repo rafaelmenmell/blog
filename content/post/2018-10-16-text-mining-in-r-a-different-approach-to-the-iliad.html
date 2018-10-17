@@ -185,7 +185,7 @@ LeeChunck &lt;- function(chunck){
 }</code></pre>
 And let’s see some results
 <div class="col2">
-<p><img src="wordcloud_chapter1.png" alt="Wordcloud of The Iliad Book I" /> <img src="wordcloud_chapter2.png" alt="Wordcloud of The Iliad Book II Catalogue of Ships" /></p>
+<p><img src="/img/wordcloud_chapter1.png" alt="Wordcloud of The Iliad Book I" /> <img src="/img/wordcloud_chapter2.png" alt="Wordcloud of The Iliad Book II Catalogue of Ships" /></p>
 </div>
 </div>
 <div id="text-mining" class="section level2">
@@ -194,21 +194,20 @@ And let’s see some results
 <div id="getting-and-cleaning-the-text" class="section level3">
 <h3>Getting and cleaning the text</h3>
 <p>The dirty job, to this analysys the cleanest text of the book was needed. After a bit of web searching I’ve found in <em>Gutenberg Project</em><a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a> [this version] (<a href="http://www.gutenberg.org/cache/epub/16452/pg16452.txt" class="uri">http://www.gutenberg.org/cache/epub/16452/pg16452.txt</a>), although this is the cleanest text I’ve found it’s is not clean at all; so you need a lot of cleaning.</p>
-<pre class="r"><code>library(dplyr)</code></pre>
-<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.4.4</code></pre>
+<pre class="r"><code>library(dplyr)
+library(tidytext)
+library(tidyr)</code></pre>
 <pre><code>## 
-## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:reshape2&#39;:
 ## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
+##     smiths</code></pre>
+<pre class="r"><code>library(ggplot2)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;ggplot2&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:crayon&#39;:
 ## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(tidytext)</code></pre>
-<pre><code>## Warning: package &#39;tidytext&#39; was built under R version 3.4.4</code></pre>
-<pre class="r"><code>library(tidyr)
-library(ggplot2)</code></pre>
-<pre><code>## Warning: package &#39;ggplot2&#39; was built under R version 3.4.4</code></pre>
+##     %+%</code></pre>
 <pre class="r"><code>  con &lt;- file(&quot;http://www.gutenberg.org/cache/epub/16452/pg16452.txt&quot;,open=&quot;r&quot;)
   lines &lt;- readLines(con)
   lines.split &lt;- vector(&quot;integer&quot;,24)
@@ -259,8 +258,13 @@ library(ggplot2)</code></pre>
 ## [6] &quot;To dogs and to all ravening fowls a prey,&quot;</code></pre>
 <p><em>The tidy text format</em>: tidy text format breaks the text in individual tokens and transforms it to a tidy data structure using <em>unnest_tokens()</em>.</p>
 <pre class="r"><code>library(tidytext)
-library(formattable)
-libros.df &lt;- lapply(libros,FUN=function(x) data.frame(line=1:length(x),text=x))
+library(formattable)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;formattable&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:crayon&#39;:
+## 
+##     style</code></pre>
+<pre class="r"><code>libros.df &lt;- lapply(libros,FUN=function(x) data.frame(line=1:length(x),text=x))
 libros.df &lt;- lapply(libros.df,FUN=function(x) x %&gt;% unnest_tokens(word,text))
   for (i in 1:length(libros.df)){
     libros.df[[i]]$book &lt;- i
@@ -279,7 +283,6 @@ head(libros.df)</code></pre>
 <h3>Word frequencies</h3>
 <pre class="r"><code>freq &lt;- libros.df %&gt;% anti_join(stop_words) %&gt;% group_by(book) %&gt;% count(word,sort=TRUE) %&gt;% group_by(book)</code></pre>
 <pre><code>## Joining, by = &quot;word&quot;</code></pre>
-<pre><code>## Warning: package &#39;bindrcpp&#39; was built under R version 3.4.4</code></pre>
 <pre class="r"><code>freq &lt;- split(freq,freq$book) 
 freq10 &lt;- lapply(freq, FUN=function(x) x[1:10,])</code></pre>
 <div class="col3">
@@ -780,35 +783,35 @@ fair
     bind_tf_idf(word, book, n)
   book_words</code></pre>
 <pre><code>## # A tibble: 41,939 x 7
-##     book word      n total     tf   idf tf_idf
-##    &lt;int&gt; &lt;chr&gt; &lt;int&gt; &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
-##  1    14 the     549  8234 0.0667     0      0
-##  2    23 the     547  8223 0.0665     0      0
-##  3    11 the     535  7757 0.0690     0      0
-##  4     2 the     494  7779 0.0635     0      0
-##  5    13 the     475  7420 0.0640     0      0
-##  6    16 the     462  7778 0.0594     0      0
-##  7     5 the     458  7956 0.0576     0      0
-##  8    17 the     424  6738 0.0629     0      0
-##  9    15 the     420  6773 0.0620     0      0
-## 10    24 the     399  7621 0.0524     0      0
+##     book  word     n total         tf   idf tf_idf
+##    &lt;int&gt; &lt;chr&gt; &lt;int&gt; &lt;int&gt;      &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+##  1    14   the   549  8234 0.06667476     0      0
+##  2    23   the   547  8223 0.06652073     0      0
+##  3    11   the   535  7757 0.06896996     0      0
+##  4     2   the   494  7779 0.06350431     0      0
+##  5    13   the   475  7420 0.06401617     0      0
+##  6    16   the   462  7778 0.05939830     0      0
+##  7     5   the   458  7956 0.05756662     0      0
+##  8    17   the   424  6738 0.06292668     0      0
+##  9    15   the   420  6773 0.06201093     0      0
+## 10    24   the   399  7621 0.05235533     0      0
 ## # ... with 41,929 more rows</code></pre>
 <pre class="r"><code>  book_words %&gt;%
     select(-total) %&gt;%
     arrange(desc(tf_idf))</code></pre>
 <pre><code>## # A tibble: 41,939 x 6
-##     book word            n      tf   idf  tf_idf
-##    &lt;int&gt; &lt;chr&gt;       &lt;int&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;
-##  1    10 dolon          16 0.00303 3.18  0.00961
-##  2     3 menelaüs       12 0.00299 3.18  0.00949
-##  3     6 bellerophon     8 0.00167 3.18  0.00530
-##  4     3 alexander       8 0.00199 2.08  0.00414
-##  5    13 deiphobus      14 0.00189 2.08  0.00392
-##  6     7 idæus           9 0.00212 1.79  0.00379
-##  7    24 litter          9 0.00118 3.18  0.00375
-##  8     2 forty           9 0.00116 3.18  0.00368
-##  9    16 patroclus      52 0.00669 0.539 0.00360
-## 10     1 chrysëis        6 0.00105 3.18  0.00334
+##     book        word     n          tf       idf      tf_idf
+##    &lt;int&gt;       &lt;chr&gt; &lt;int&gt;       &lt;dbl&gt;     &lt;dbl&gt;       &lt;dbl&gt;
+##  1    10       dolon    16 0.003025147 3.1780538 0.009614079
+##  2     3    menelaüs    12 0.002986560 3.1780538 0.009491450
+##  3     6 bellerophon     8 0.001668405 3.1780538 0.005302280
+##  4     3   alexander     8 0.001991040 2.0794415 0.004140252
+##  5    13   deiphobus    14 0.001886792 2.0794415 0.003923475
+##  6     7       idæus     9 0.002116153 1.7917595 0.003791638
+##  7    24      litter     9 0.001180947 3.1780538 0.003753114
+##  8     2       forty     9 0.001156961 3.1780538 0.003676884
+##  9    16   patroclus    52 0.006685523 0.5389965 0.003603474
+## 10     1    chrysëis     6 0.001049685 3.1780538 0.003335956
 ## # ... with 41,929 more rows</code></pre>
 <pre class="r"><code>  book_words %&gt;%
     arrange(desc(tf_idf)) %&gt;%
@@ -839,18 +842,18 @@ fair
   iliad_bigrams %&gt;%
     count(bigram, sort = TRUE)</code></pre>
 <pre><code>## # A tibble: 64,434 x 2
-##    bigram       n
-##    &lt;chr&gt;    &lt;int&gt;
-##  1 of the     574
-##  2 to the     459
-##  3 on the     353
-##  4 and the    329
-##  5 in the     319
+##      bigram     n
+##       &lt;chr&gt; &lt;int&gt;
+##  1   of the   574
+##  2   to the   459
+##  3   on the   353
+##  4  and the   329
+##  5   in the   319
 ##  6 from the   305
-##  7 of all     212
-##  8 all the    206
-##  9 son of     205
-## 10 to his     205
+##  7   of all   212
+##  8  all the   206
+##  9   son of   205
+## 10   to his   205
 ## # ... with 64,424 more rows</code></pre>
 <pre class="r"><code>  bigrams_separated &lt;- iliad_bigrams %&gt;%
     separate(bigram, c(&quot;word1&quot;, &quot;word2&quot;), sep = &quot; &quot;)
@@ -886,18 +889,18 @@ fair
            !word3 %in% stop_words$word) %&gt;%
     count(word1, word2, word3, sort = TRUE)</code></pre>
 <pre><code>## # A tibble: 5,727 x 4
-##    word1   word2     word3      n
-##    &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;  &lt;int&gt;
-##  1 laertes noble     son        7
-##  2 wind    swept     ilium      7
-##  3 blue    eyed      pallas     6
-##  4 gore    tainted   mars       6
-##  5 jove    ægis      arm&#39;d      6
-##  6 &lt;NA&gt;    &lt;NA&gt;      &lt;NA&gt;       6
-##  7 close   fighting  sons       5
-##  8 atreus  mighty    son        4
-##  9 cloud   assembler god        4
-## 10 cloud   assembler jove       4
+##      word1     word2  word3     n
+##      &lt;chr&gt;     &lt;chr&gt;  &lt;chr&gt; &lt;int&gt;
+##  1 laertes     noble    son     7
+##  2    wind     swept  ilium     7
+##  3    blue      eyed pallas     6
+##  4    gore   tainted   mars     6
+##  5    jove      ægis  arm&#39;d     6
+##  6    &lt;NA&gt;      &lt;NA&gt;   &lt;NA&gt;     6
+##  7   close  fighting   sons     5
+##  8  atreus    mighty    son     4
+##  9   cloud assembler    god     4
+## 10   cloud assembler   jove     4
 ## # ... with 5,717 more rows</code></pre>
 <pre class="r"><code>  head(iliad_trigrams,10)</code></pre>
 <pre><code>##    line              trigram book
@@ -916,38 +919,38 @@ fair
     dplyr::filter(word2 == &quot;god&quot;) %&gt;%
     count(word1, sort = TRUE)</code></pre>
 <pre><code>## # A tibble: 14 x 2
-##    word1             n
-##    &lt;chr&gt;         &lt;int&gt;
-##  1 archer            5
-##  2 assembler         4
-##  3 warrior           3
-##  4 angry             1
-##  5 bender            1
-##  6 coming            1
-##  7 guardian          1
-##  8 immortal          1
+##            word1     n
+##            &lt;chr&gt; &lt;int&gt;
+##  1        archer     5
+##  2     assembler     4
+##  3       warrior     3
+##  4         angry     1
+##  5        bender     1
+##  6        coming     1
+##  7      guardian     1
+##  8      immortal     1
 ##  9 indefatigable     1
-## 10 jove              1
-## 11 mighty            1
-## 12 stirring          1
-## 13 thy               1
-## 14 tossing           1</code></pre>
+## 10          jove     1
+## 11        mighty     1
+## 12      stirring     1
+## 13           thy     1
+## 14       tossing     1</code></pre>
 <pre class="r"><code>  bigrams_filtered %&gt;%
     dplyr::filter(word2 == &quot;achilles&quot;) %&gt;%
     count(word1, sort = TRUE)</code></pre>
 <pre><code>## # A tibble: 94 x 2
-##    word1         n
-##    &lt;chr&gt;     &lt;int&gt;
-##  1 swift        11
-##  2 brave         7
-##  3 godlike       5
-##  4 renown&#39;d      5
-##  5 divine        4
+##        word1     n
+##        &lt;chr&gt; &lt;int&gt;
+##  1     swift    11
+##  2     brave     7
+##  3   godlike     5
+##  4  renown&#39;d     5
+##  5    divine     4
 ##  6 myrmidons     4
-##  7 noble         4
-##  8 spake         3
-##  9 thou          3
-## 10 upsprang      3
+##  7     noble     4
+##  8     spake     3
+##  9      thou     3
+## 10  upsprang     3
 ## # ... with 84 more rows</code></pre>
 <pre class="r"><code>  bigram_tf_idf &lt;- iliad_bigrams %&gt;%
     count(book, bigram) %&gt;%

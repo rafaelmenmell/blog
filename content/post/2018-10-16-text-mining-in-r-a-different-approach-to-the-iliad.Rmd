@@ -201,8 +201,8 @@ LeeChunck <- function(chunck){
 
 And let's see some results
 <div class="col2">
-![Wordcloud of _The Iliad_ Book I](wordcloud_chapter1.png)
-![Wordcloud of _The Iliad_ Book II Catalogue of Ships](wordcloud_chapter2.png)
+![Wordcloud of _The Iliad_ Book I](/img/wordcloud_chapter1.png)
+![Wordcloud of _The Iliad_ Book II Catalogue of Ships](/img/wordcloud_chapter2.png)
 </div>
 
 [^3]: Perseus Digital Library <http://www.perseus.tufts.edu/hopper/>
