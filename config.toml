@@ -2,7 +2,7 @@ baseurl = "/"
 languageCode = "en-us"
 title = "Assorted things"
 theme = "hugo-lithium"
-googleAnalytics = ""
+googleAnalytics = "UA-127831356-1"
 disqusShortname = "rafaelmenmell-netlify-com"
 ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
 
