@@ -38,7 +38,7 @@ Once I developed the package (I may write another post with the details) I used 
 
 ### Installing the package
 
-```{r ins, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+```{r ins, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
 devtools::install_github("rOpenSpain/MorbiditySpainR",quiet = TRUE)
 suppressPackageStartupMessages(library(MorbiditySpainR))
 suppressPackageStartupMessages(library(lubridate))
@@ -51,7 +51,7 @@ suppressPackageStartupMessages(library(geofacet))
 
 I want to get a dataset light enough to do some descriptive analysis with my personal laptop so I dowload data from 2010 to 2014.  
 
-```{r datos, echo=FALSE, cache=TRUE, eval=TRUE, message=FALSE,warning=FALSE}
+```{r datos, echo=TRUE, cache=TRUE, eval=TRUE, message=FALSE,warning=FALSE}
 if(!file.exists("data.rds")){
   data <- GetMorbiData(y1 = 2010,y2 = 2014)
   saveRDS(data,"data.rds")
@@ -65,7 +65,7 @@ dplyr::glimpse(data)
 
 Regrettably we have an issue here in Spain with consumption of alcohol by minors, some times this consumption may end up in a hospital emergency, so let's find out this in our data.
 
-```{r explo1, echo=FALSE, cache=TRUE, dependson="datos", eval=TRUE, message=FALSE, warning=FALSE,fig_width=10}
+```{r explo1, echo=TRUE, cache=TRUE, dependson="datos", eval=TRUE, message=FALSE, warning=FALSE,fig_width=10}
 data <- readRDS("data.rds")
 ll <- data %>% filter(year(fecha_ingreso)>=2010)
 
@@ -87,11 +87,9 @@ g <- ggplot(data=ll2) + geom_bar(aes(x=year,y=total),stat="identity",position="d
 plot(g)
 ```
 
-Otro análisis exploratorio que nos permite hacer este conjunto de datos tiene como objetivo conocer cuales son los esguinces más comunes en las personas entre 30 y 45 años, separando los resultados por sexos.
-
 Another descriptive analysis we can do with dataset has the goal of knowing which are the most common sprain in people between 30 and 45 years, splitting resulst by sex.
 
-```{r explo2,  echo=FALSE, cache=TRUE, dependson="datos", eval=TRUE, message=FALSE, warning=FALSE,fig_width=10}
+```{r explo2,  echo=TRUE, cache=TRUE, dependson="datos", eval=TRUE, message=FALSE, warning=FALSE,fig_width=10}
 data <- readRDS("data.rds")
 lesiones <- data %>% FilterEmergency() %>% filter(edad>=30 & edad<=45) %>% FilterDiagnosis2(96) %>% AddDiagnosis3()
 lesiones <- lesiones %>% ReduceData(provincia = TRUE,date = "day",diag = "diag3",sex=TRUE)
@@ -108,7 +106,7 @@ plot(g2)
 
 The next analysis imitates the famous [Myth busters](https://en.wikipedia.org/wiki/MythBusters) with data and answer the question of whether they are born more babies with full moon.
 
-```{r explo3, echo=FALSE, cache=TRUE, dependson="datos", eval=TRUE, message=FALSE, warning=FALSE,fig_width=10}
+```{r explo3, echo=TRUE, cache=TRUE, dependson="datos", eval=TRUE, message=FALSE, warning=FALSE,fig_width=10}
 data <- readRDS("data.rds")
 partos <- data %>% FilterEmergency() %>% FilterDiagnosis2(77) %>%  ReduceData(provincia = FALSE,date = "day",sex = FALSE)
 library(lunar)
@@ -119,12 +117,10 @@ g3 <- ggplot(partos) + geom_bar(aes(x=phase,y=total),stat="identity",position = 
 plot(g3)
 ```
 
-Un último ejemplo de análisis exploratorio nos puede servir para construir una serie temporal de los ingresos hospitalarios de menores por enfermedades respiratorias (gripe y neumonía) en la Comunidad de Madrid y confrontarla con una serie climatológica para poder señalar episodios epidemiológicos.
-
 The last example builds a temporal series of hospital admissions of minors related with repiratorial diseases (flu and pneumonia) in Madrid. With this temporal serie we can construct a mean serie and compare them both to find epimediological episodes.
 
 
-```{r explo4, echo=FALSE, cache=TRUE, dependson="datos", eval=TRUE, message=FALSE, warning=FALSE,fig_width=10}
+```{r explo4, echo=TRUE, cache=TRUE, dependson="datos", eval=TRUE, message=FALSE, warning=FALSE,fig_width=10}
 library(zoo)
 data <- readRDS("data.rds")
 ll.gripe <- data %>% FilterProvincia(28) %>% FilterEmergency() %>% dplyr::filter(edad<18) %>% FilterDiagnosis2(57) %>% ReduceData(provincia = TRUE,date="day",sex = FALSE) %>% SetPrevalence(pop = "total")

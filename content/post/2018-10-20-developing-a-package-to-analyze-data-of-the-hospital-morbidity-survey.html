@@ -35,10 +35,23 @@ tags: []
 <p>Once I developed the package (I may write another post with the details) I used it to make some descriptive analysis. This dataset is awesome and a lot of descriptive analysis can be done. Let’s have fun with data!!</p>
 <div id="installing-the-package" class="section level3">
 <h3>Installing the package</h3>
+<pre class="r"><code>devtools::install_github(&quot;rOpenSpain/MorbiditySpainR&quot;,quiet = TRUE)
+suppressPackageStartupMessages(library(MorbiditySpainR))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(geofacet))</code></pre>
 </div>
 <div id="downloading-data" class="section level3">
 <h3>Downloading data</h3>
 <p>I want to get a dataset light enough to do some descriptive analysis with my personal laptop so I dowload data from 2010 to 2014.</p>
+<pre class="r"><code>if(!file.exists(&quot;data.rds&quot;)){
+  data &lt;- GetMorbiData(y1 = 2010,y2 = 2014)
+  saveRDS(data,&quot;data.rds&quot;)
+} else {
+  data &lt;- readRDS(&quot;data.rds&quot;)
+}
+dplyr::glimpse(data)</code></pre>
 <pre><code>## Observations: 23,069,431
 ## Variables: 10
 ## $ prov_hosp     &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
@@ -55,14 +68,68 @@ tags: []
 <div id="exploratory-analysis" class="section level3">
 <h3>Exploratory analysis</h3>
 <p>Regrettably we have an issue here in Spain with consumption of alcohol by minors, some times this consumption may end up in a hospital emergency, so let’s find out this in our data.</p>
+<pre class="r"><code>data &lt;- readRDS(&quot;data.rds&quot;)
+ll &lt;- data %&gt;% filter(year(fecha_ingreso)&gt;=2010)
+
+ll2 &lt;- ll %&gt;% FilterEmergency() %&gt;% filter(edad&lt;18) %&gt;% FilterDiagnosis2(35)
+ll2 &lt;- ll2 %&gt;% AddDiagnosis3() %&gt;% ReduceData(provincia = TRUE,date = &quot;year&quot;,diag = &quot;diag3&quot;)
+diag2.35 &lt;- unique(ll2$diag3)
+diag2.35 &lt;- diag2.35[grepl(&quot;alcohol&quot;,tolower(diag2.35))]
+ll2 &lt;- ll2 %&gt;% filter(diag3 %in% diag2.35)
+ll2 &lt;- ll2 %&gt;% SetPrevalence()
+ll2 &lt;- ll2 %&gt;% dplyr::group_by(prov,fecha) %&gt;% dplyr::summarise(total=sum(total.prev))
+ll2$code &lt;- sprintf(&quot;%02d&quot;,ll2$prov)
+ll2$year &lt;- year(ll2$fecha)
+prov.graf &lt;- geofacet::spain_prov_grid1
+ll2 &lt;- full_join(ll2,prov.graf,by=&quot;code&quot;)
+
+ll2.media &lt;- mean(ll2$total,na.rm=TRUE)
+
+g &lt;- ggplot(data=ll2) + geom_bar(aes(x=year,y=total),stat=&quot;identity&quot;,position=&quot;dodge&quot;) + geom_hline(yintercept = ll2.media,color=&quot;red&quot;) + facet_geo(~ name, grid = &quot;spain_prov_grid1&quot;) +labs(title=&quot;Prevalence of hospital emergencies related with alcohol consumption by minors&quot;,subtitle=&quot;Cases by 100.000 habitants&quot;,caption=&quot;Hospital morbidity survey.2010-2014&quot;) + xlab(&quot;&quot;) + ylab(&quot;&quot;) + theme_bw() + theme(axis.text=element_text(size=6, angle=90),strip.text = element_blank(),strip.background = element_blank())
+plot(g)</code></pre>
 <p><img src="/post/2018-10-20-developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey_files/figure-html/explo1-1.png" width="672" /></p>
-<p>Otro análisis exploratorio que nos permite hacer este conjunto de datos tiene como objetivo conocer cuales son los esguinces más comunes en las personas entre 30 y 45 años, separando los resultados por sexos.</p>
 <p>Another descriptive analysis we can do with dataset has the goal of knowing which are the most common sprain in people between 30 and 45 years, splitting resulst by sex.</p>
+<pre class="r"><code>data &lt;- readRDS(&quot;data.rds&quot;)
+lesiones &lt;- data %&gt;% FilterEmergency() %&gt;% filter(edad&gt;=30 &amp; edad&lt;=45) %&gt;% FilterDiagnosis2(96) %&gt;% AddDiagnosis3()
+lesiones &lt;- lesiones %&gt;% ReduceData(provincia = TRUE,date = &quot;day&quot;,diag = &quot;diag3&quot;,sex=TRUE)
+
+lesiones.y &lt;- lesiones %&gt;% group_by(diag=diag3,sex=sex) %&gt;% summarise(total=sum(total))
+esguinces &lt;- lesiones.y %&gt;% group_by(diag) %&gt;% summarise(tt=sum(total)) %&gt;% top_n(10,tt)
+esguinces &lt;- esguinces$diag
+lesiones.y &lt;- lesiones.y %&gt;% filter(diag %in% esguinces)
+lesiones.y$sex &lt;- factor(x = lesiones.y$sex,labels = c(&quot;Male&quot;,&quot;Female&quot;))
+
+g2 &lt;- ggplot(data=lesiones.y) + geom_bar(aes(x=sex,y=total),stat=&quot;identity&quot;,position=&quot;dodge&quot;) + facet_wrap(~diag,nrow = 2,ncol = 5,scales = &quot;free&quot;) + labs(title=&quot;Prevalence of hospital emergencies related with sprains&quot;,subtitle=&quot;Total cases&quot;,caption=&quot;Hospital morbidity survey.2010-2014&quot;) + xlab(&quot;Sex&quot;) + ylab(&quot;&quot;) + theme_bw()
+plot(g2)</code></pre>
 <p><img src="/post/2018-10-20-developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey_files/figure-html/explo2-1.png" width="672" /></p>
 <p>The next analysis imitates the famous <a href="https://en.wikipedia.org/wiki/MythBusters">Myth busters</a> with data and answer the question of whether they are born more babies with full moon.</p>
+<pre class="r"><code>data &lt;- readRDS(&quot;data.rds&quot;)
+partos &lt;- data %&gt;% FilterEmergency() %&gt;% FilterDiagnosis2(77) %&gt;%  ReduceData(provincia = FALSE,date = &quot;day&quot;,sex = FALSE)
+library(lunar)
+partos$phase &lt;- lunar.phase(partos$fecha,name=8)
+partos &lt;- partos %&gt;% group_by(phase) %&gt;% summarise(total=sum(total))
+
+g3 &lt;- ggplot(partos) + geom_bar(aes(x=phase,y=total),stat=&quot;identity&quot;,position = &quot;dodge&quot;) + labs(title=&quot;Number of births and moon phase&quot;,subtitle=&quot;Total cases&quot;,caption=&quot;Hospital morbidity survey.2010-2014&quot;) + xlab(&quot;Fase Lunar&quot;) + ylab(&quot;&quot;) + theme_bw()
+plot(g3)</code></pre>
 <p><img src="/post/2018-10-20-developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey_files/figure-html/explo3-1.png" width="672" /></p>
-<p>Un último ejemplo de análisis exploratorio nos puede servir para construir una serie temporal de los ingresos hospitalarios de menores por enfermedades respiratorias (gripe y neumonía) en la Comunidad de Madrid y confrontarla con una serie climatológica para poder señalar episodios epidemiológicos.</p>
 <p>The last example builds a temporal series of hospital admissions of minors related with repiratorial diseases (flu and pneumonia) in Madrid. With this temporal serie we can construct a mean serie and compare them both to find epimediological episodes.</p>
+<pre class="r"><code>library(zoo)
+data &lt;- readRDS(&quot;data.rds&quot;)
+ll.gripe &lt;- data %&gt;% FilterProvincia(28) %&gt;% FilterEmergency() %&gt;% dplyr::filter(edad&lt;18) %&gt;% FilterDiagnosis2(57) %&gt;% ReduceData(provincia = TRUE,date=&quot;day&quot;,sex = FALSE) %&gt;% SetPrevalence(pop = &quot;total&quot;)
+ll.gripe$yday &lt;- yday(ll.gripe$fecha)
+ll.gripe.clim &lt;- ll.gripe %&gt;% dplyr::group_by(yday) %&gt;% dplyr::summarise(mean=mean(total.prev,na.rm=TRUE))
+
+ll.gripe.rollmean &lt;- bind_rows(ll.gripe.clim,ll.gripe.clim,ll.gripe.clim)
+ll.gripe.rollmean &lt;- rollmean(ll.gripe.rollmean$mean,15,fill=NA)[367:732]
+ll.gripe.clim$mean &lt;- ll.gripe.rollmean
+
+# g4 &lt;- ggplot(ll.gripe.clim) + geom_line(aes(x=yday,y=mean))
+ll.gripe &lt;- full_join(ll.gripe,ll.gripe.clim,by=&quot;yday&quot;)
+ll.gripe$color &lt;- ifelse(test = ll.gripe$total.prev&gt;ll.gripe$mean,&quot;si&quot;,&quot;no&quot;)
+cols &lt;- c(&quot;no&quot; = &quot;gray70&quot;, &quot;si&quot; = &quot;red&quot;)
+ll.gripe &lt;- ll.gripe %&gt;% dplyr::filter(year(fecha)&gt;=2010)
+g4 &lt;- ggplot(ll.gripe) + geom_bar(aes(x=fecha,y=total.prev,fill=color),stat=&quot;identity&quot;,position = &quot;dodge&quot;) + geom_line(aes(x=fecha,y=mean)) + facet_wrap(~year(fecha),ncol=2,scales = &quot;free_x&quot;) + scale_fill_manual(values=cols,guide=FALSE) + labs(title=&quot;Numer of emergency admissions related with influeza and pneumonia. Under 18 years&quot;,subtitle=&quot;Comunidad de Madrid. Casesby 100.000 habitants&quot;,caption=&quot;Hospital morbidity survey.2010-2014&quot;) + xlab(&quot;Date&quot;) + ylab(&quot;&quot;) + theme_bw()
+plot(g4)</code></pre>
 <p><img src="/post/2018-10-20-developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey_files/figure-html/explo4-1.png" width="672" /></p>
 </div>
 </div>
