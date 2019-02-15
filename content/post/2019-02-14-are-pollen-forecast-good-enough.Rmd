@@ -8,6 +8,7 @@ categories:
 - R
 - pollen
 - forecast
+output: html_document
 ---
 
 ## Introduction
@@ -52,7 +53,7 @@ With a little patience you get a folder for every email with de pdf files attach
 
 You all know pdf files are not good to data transfer but this is what I have, so I have to work with it. Now I show an example of pdf file with the observations:
 
-<img src="/Users/rafael/Polen/attach/20180208/CUPR.pdf" alt="Observations example"  width="1200" height="2100">
+![Pdf file with observations](/home/rafael.menendez/proyectosR/blog/static/img/CUPR.pdf){width=65%}
 
 To scrap the observations data from these pdf files I use this code with the tabulizer package (Disclaimer: this code is quite old, and old code can be embarrasing)
 
@@ -202,5 +203,17 @@ SeriePredicciones <- function(tipo="CUPR"){
 
 ```
 
+In this graph you can see the complete historical series of Cupressaceae/Taxacea (my worst enemy) from 2014 to present day. Please notice the huge peak in February 2019, those were rough days.
 
+![Cupressaceae-Taxaceae pollen](/home/rafael.menendez/proyectosR/blog/static/img/polen_graph1.png)
+
+Finally I checked forecast quality using [Gerrity Score](http://www.cawcr.gov.au/projects/verification/) because "GS does not reward conservative forecasting like HSS and HK, but rather rewards forecasts for correctly predicting the less likely categories".
+
+Gerrity Score for persistence (using yesterday observation as today forecast): 0.366
+
+Gerrity Socre for climatology (using average value for this day as today forecast): 0.215
+
+Gerrity Score for forecast: 0.32
+
+So, forecast seems to be not very useful compared with persistence.
 
