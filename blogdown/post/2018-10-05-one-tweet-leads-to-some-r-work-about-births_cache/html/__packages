@@ -1,0 +1,11 @@
+base
+crayon
+dplyr
+DBI
+RPostgreSQL
+RSQLite
+lubridate
+reshape2
+meteologica
+ggplot2
+readr
