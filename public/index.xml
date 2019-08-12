@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Assorted things</title>
+    <link>https://rafaelmenmell.netlify.com/</link>
+    <description>Recent content on Assorted things</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 14 Feb 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Are pollen forecast good enough?</title>
+      <link>https://rafaelmenmell.netlify.com/2019/02/14/are-pollen-forecast-good-enough/</link>
+      <pubDate>Thu, 14 Feb 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/2019/02/14/are-pollen-forecast-good-enough/</guid>
+      <description>Introduction Maybe some of you (in my huge audience) have the bad luck of being allergic to pollen like myself. Since mid-January to the end of June I have to live very close to my antihistamines. Here in Madrid where I live health authorities issue newsletters (by email) with observations and forecast.
+Although the service has some deficiencies (like not being available in weekends and fairy days) I found it useful, but how good are the forecasts provided?</description>
+    </item>
+    
+    <item>
+      <title>Developing a package to analyze data of the hospital morbidity survey</title>
+      <link>https://rafaelmenmell.netlify.com/2018/10/20/developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey/</link>
+      <pubDate>Sat, 20 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/2018/10/20/developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey/</guid>
+      <description>Introduction This post is going to be the most ambitious one so far. Months ago I decided to develope a R package from scratch to learn a little about the process. So I dug up some code I wrote and I got to the work. And of course, for a job like that you want to work properly so I followed R packages by Hadley Wickham
+ The data My package downloads and gives functions to analyze data from the Hospital morbidity survey from Spanish National Institute of Statistics, this data is quite interesting for several reasons:</description>
+    </item>
+    
+    <item>
+      <title>Text mining in R. A different approach to The Iliad</title>
+      <link>https://rafaelmenmell.netlify.com/2018/10/16/text-mining-in-r-a-different-approach-to-the-iliad/</link>
+      <pubDate>Tue, 16 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/2018/10/16/text-mining-in-r-a-different-approach-to-the-iliad/</guid>
+      <description>.col1 { columns: 1 400px; /* number of columns and width in pixels*/ -webkit-columns: 1 400px; /* chrome, safari */ -moz-columns: 1 400px; /* firefox */ } .col2 { columns: 2 200px; /* number of columns and width in pixels*/ -webkit-columns: 2 200px; /* chrome, safari */ -moz-columns: 2 200px; /* firefox */ } .col3 { columns: 3 100px; -webkit-columns: 3 100px; -moz-columns: 3 100px; }  Introduction This project is an attempt to get familiarity with text mining in R and I haven’t found a better way to get it that mining The Iliad.</description>
+    </item>
+    
+    <item>
+      <title>One tweet leads to some R work about births</title>
+      <link>https://rafaelmenmell.netlify.com/2018/10/05/one-tweet-leads-to-some-r-work-about-births/</link>
+      <pubDate>Fri, 05 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/2018/10/05/one-tweet-leads-to-some-r-work-about-births/</guid>
+      <description>This new post was born because of my curiosity about this tweet:
+Italy 1960-2014: Big drop in annual number of births, big increase in ages of mothers. #Italy #fertility pic.twitter.com/QGT0AnA3IU — Carl Schmertmann (@CSchmert) 7 de febrero de 2018   Sometimes you just feel the urge to recreate some data analysis that you find interesting. Im my case I used data from Spain that I found in INE (National Institute of Statistics), with a little effort I found out the ftp where the data are hidden.</description>
+    </item>
+    
+    <item>
+      <title>Funny facts about borrowed stuff in Madrid public libraries</title>
+      <link>https://rafaelmenmell.netlify.com/2018/10/03/funny-facts-about-borrowed-stuff-in-madrid-public-libraries/</link>
+      <pubDate>Wed, 03 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/2018/10/03/funny-facts-about-borrowed-stuff-in-madrid-public-libraries/</guid>
+      <description>As a regular user of Madrid public libraries I’m glad of having found data about borrowed stuff. So let’s take a look at it and answer a couple of questions.
+Miguel de Cervantes Prize is one of the most richest literary prizes and the most prestigious of the prizes to writers in spanish.
+So, what’s the impact in the popularity of a writer measured by the number of borrowing in public libraries?</description>
+    </item>
+    
+    <item>
+      <title>Scrapping BOE in search of post election designations</title>
+      <link>https://rafaelmenmell.netlify.com/2018/09/26/scrapping-boe-in-search-of-post-election-designations/</link>
+      <pubDate>Wed, 26 Sep 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/2018/09/26/scrapping-boe-in-search-of-post-election-designations/</guid>
+      <description>Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of dessignations in the highest levels of administration.
+I want to quantify this by counting the dessignations and cessations published in BOE (Official State Gazette) with R.
+suppressPackageStartupMessages(library(XML)) suppressPackageStartupMessages(library(ggplot2)) suppressPackageStartupMessages(library(dplyr)) CuentaNombramientos &amp;lt;- function(fecha){ path &amp;lt;- sprintf(&amp;quot;https://boe.es/diario_boe/xml.php?id=BOE-S-%s&amp;quot;,fecha) resumen_boe_xml &amp;lt;- XML::xmlParse(file = readLines(path)) top &amp;lt;- xmlRoot(resumen_boe_xml) if (xmlValue(top[[1]][[1]])!</description>
+    </item>
+    
+    <item>
+      <title>About</title>
+      <link>https://rafaelmenmell.netlify.com/about/</link>
+      <pubDate>Thu, 05 May 2016 21:48:51 -0700</pubDate>
+      
+      <guid>/about/</guid>
+      <description>My name is Rafael Menéndez, almost 40 yo., father of two, forestry engineer, data analyst at Meteologica. Assorted interests: archeology, non-fiction literature, meteorology, ancient history, R, coding and much more.</description>
+    </item>
+    
+  </channel>
+</rss>
