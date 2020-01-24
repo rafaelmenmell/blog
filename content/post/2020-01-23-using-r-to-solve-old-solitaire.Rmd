@@ -1,0 +1,216 @@
+---
+title: "Using R to solve old solitaire"
+author: "rmm"
+date: '2020-01-23'
+slug: using-r-to-solve-old-solitaire
+tags: []
+categories:
+- R
+- solitaire
+---
+
+There is an old solitaire I started to play when I was in high school, when classes became too boring. I don't know if it has a name or if I invited it _ex nihilo_.
+These are the rules:
+
+* It begins with an empty 10x10 matrix
+* Write a 1 where ever you want
+* To write the next number you have to leave two blank squares if you move horizontally or vertically, if you move in diagonal you have to leave one blank square.
+* Can you reach 100?
+
+I played it a lot while in high school and college but never reached 100, mid 90s was my best move.
+My maths has never been good enough to let me prove if the game has solution and how many.
+
+Some weeks ago I attended a boring conference and I discovered my self playing this old game again. But this time was different, this time I thaughth "R can show me the way to win".
+
+My first move was to use brute force, code a script that plays the game and play it hundreds of thousands of times. I did it.
+
+```{r el_solitario}
+set.seed(seed = 1000)
+tabla_vacia <- function(ns=10){
+  tv <- matrix(data = 0,nrow = ns,ncol = ns)
+  return(tv)
+}
+
+posicion_inical <- function(ns=10,fijo=FALSE){
+  if(!fijo){
+    inicio <- sample(x = 1:ns,size = 2,replace = TRUE)
+  } else {
+    inicio <- fijo
+  }
+  return(inicio)
+}
+
+elige_movimiento <- function(movimientos_posibles){
+  move <- sample(x = movimientos_posibles,size = 1)
+  return(move)
+}
+
+traduce_movimiento <- function(move){
+  #1 arriba
+  #2 derecha
+  #3 abajo
+  #4 izquierda
+  #5 arriba derecha
+  #6 abajo derecha
+  #7 abajo izquierda
+  #8 arriba izquierda
+  if (move==1) {desp <- c(0,-3)}
+  if (move==2) {desp <- c(3,0)}
+  if (move==3) {desp <- c(0,3)}
+  if (move==4) {desp <- c(-3,0)}
+  if (move==5) {desp <- c(2,-2)}
+  if (move==6) {desp <- c(2,2)}
+  if (move==7) {desp <- c(-2,2)}
+  if (move==8) {desp <- c(-2,-2)}
+  return(desp)
+}
+
+comprueba_movimiento <- function(tabla,posicion,desp,ns=10){
+  posicion_nueva <- posicion + desp
+  if(posicion_nueva[1] %in% 1:ns & posicion_nueva[2] %in% 1:ns){
+    if(tabla[posicion_nueva[1],posicion_nueva[2]]==0){
+      comprueba <- 1
+    } else {
+      comprueba <- 0
+    }
+  } else {
+    comprueba <- 0
+  }
+  return(comprueba)
+}
+
+juega <- function(ns=10,fijo=FALSE){
+  tabla <- tabla_vacia(ns = ns)
+  posicion <- posicion_inical(ns = ns,fijo = fijo)
+  todos_movimientos <- 1:8
+  for (n in 1:100){
+    tabla[posicion[1],posicion[2]] <- n
+    movimientos_posibles <- todos_movimientos
+    move <- elige_movimiento(movimientos_posibles)
+    desp <- traduce_movimiento(move = move)
+    comprueba <- 0
+    while(comprueba!=1){
+      comprueba <- comprueba_movimiento(tabla=tabla,posicion = posicion,desp = desp,ns = ns)
+      if(comprueba==1){
+        posicion <- posicion + desp
+        n <- n+1
+        tabla[posicion[1],posicion[2]] <- n
+      } else {
+        movimientos_posibles <- movimientos_posibles[movimientos_posibles!=move]
+        if(length(movimientos_posibles)==0){
+          return(list(tabla=tabla,n=n))
+        }
+        move <- elige_movimiento(movimientos_posibles = movimientos_posibles)
+        desp <- traduce_movimiento(move = move)
+      }
+    }
+  }
+  return(list(tabla=tabla,n=n))
+}
+
+juega_a_saco <- function(N=10000,ns=10,fijo=FALSE){
+  mejor <- juega(ns=ns,fijo = fijo)
+  resul <- vector("numeric",N)
+  for (i in 1:N){
+    nueva <- juega(ns=ns,fijo = fijo)
+    resul[i] <- nueva$n
+    if (nueva$n>mejor$n){
+      mejor <- nueva
+      print(mejor$n)
+    }
+  }
+  print(mejor)
+  return(resul)
+}
+```
+
+This execution plays 10000 solitaires 
+
+```{r el_solitario2 , dependson="el_soliario"}
+resul <- juega_a_saco(N = 10000)
+hist(resul)
+```
+
+I tried harder with 100000000 solitaires and I get 99. But, where is the perfect game?
+
+So my next move was clear, leave brute force strategy and embrace a new one: decompose the problem. This line play 1000 solitaires of 5x5 squares
+
+```{r el_solitario3, dependson="el_soliario2"}
+resul2 <- juega_a_saco(N = 1000,ns = 5)
+hist(resul2)
+```
+
+It's very easy to find a solution for a 5x5 game, so the next move is to link this solutions.
+
+```{r el_solitario4, dependson="el_soliario3"}
+banco_de_cuadros_correctos <- function(N=10000,ns=10,fijo=FALSE){
+  resul <- vector("list",N)
+  for (i in 1:N){
+    resul[[i]] <- juega(ns = ns,fijo = fijo)
+  }
+  resul <- resul[lapply(resul, function(x) x$n)==25]
+  return(resul)
+}
+
+todos_los_cuadros_correctos <- function(ns=10,N=1000){
+  muestras <- vector("list",ns*ns)
+  k <- 1
+  for (i in 1:ns){
+    for (j in 1:ns){
+      muestras[[k]]$inicio <- c(i,j)
+      muestras[[k]]$tablas <- banco_de_cuadros_correctos(N = N,ns = ns,fijo = c(i,j))
+      k <- k + 1
+    }
+  }
+  return(muestras)
+}
+```
+
+With this line you have a workbench with a bunch of solutions for every initial position in a 5x5 game.
+
+```{r el_solitario5, dependson="el_soliario4"}
+tablas <- suppressWarnings(todos_los_cuadros_correctos(ns = 5,N = 1000))
+```
+
+Let's start from 1,1
+
+```{r el_solitario6, dependson="el_solitario5"}
+tablas[[1]]$tablas[[1]]$tabla
+```
+
+It finishes in 2,3 so let's move to the right and so we have to link with a solitaire startign in 2,1
+
+```{r el_solitario7, dependson="el_solitario6"}
+tablas[[6]]$tablas[[1]]$tabla
+```
+
+This one finishes in 4,1, now move in diagonal downwards and to the right and link with a table starting in 1,3
+
+```{r el_solitario8, dependson="el_solitario7"}
+tablas[[3]]$tablas[[1]]$tabla
+```
+
+This one finishes in 2,3, now move to the left and let's link with a new one starting in 2,5
+
+```{r el_solitario9, dependson="el_solitario8"}
+tablas[[10]]$tablas[[1]]$tabla
+```
+
+Now, i'm going to put the all together from 1 to 100
+
+```{r el_solitario10, dependson="el_solitario9"}
+t1 <- tablas[[1]]$tablas[[1]]$tabla
+t2 <- tablas[[6]]$tablas[[1]]$tabla + 25
+t3 <- tablas[[3]]$tablas[[1]]$tabla + 50
+t4 <- tablas[[10]]$tablas[[1]]$tabla + 75
+tA <- cbind(t1,t2)
+tB <- cbind(t4,t3)
+t <- rbind(tA,tB)
+t
+```
+
+Is this any useful? No, it's totally useless.
+What can I learn from this? Brute force it's a bad approach when your problem has infinite possibilities and you don't know if it has one solution, many solutions, infinite solutions or not solutions at all.
+But decomposing the problem in more manageable parts it's allways a good practice.
+
+Has anyone better maths than me and can give me any mathematical hint about this solitaire?
