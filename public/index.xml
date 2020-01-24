@@ -1,84 +1,2008 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Assorted things</title>
-    <link>https://rafaelmenmell.netlify.com/</link>
+    <link>/</link>
     <description>Recent content on Assorted things</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 14 Feb 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 23 Jan 2020 00:00:00 +0000</lastBuildDate>
     
-	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>Using R to solve old solitaire</title>
+      <link>/2020/01/23/using-r-to-solve-old-solitaire/</link>
+      <pubDate>Thu, 23 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/2020/01/23/using-r-to-solve-old-solitaire/</guid>
+      <description>
+
+
+&lt;p&gt;There is an old solitaire I started to play when I was in high school, when classes became too boring. I don’t know if it has a name or if I invited it &lt;em&gt;ex nihilo&lt;/em&gt;.
+These are the rules:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;It begins with an empty 10x10 matrix&lt;/li&gt;
+&lt;li&gt;Write a 1 where ever you want&lt;/li&gt;
+&lt;li&gt;To write the next number you have to leave two blank squares if you move horizontally or vertically, if you move in diagonal you have to leave one blank square.&lt;/li&gt;
+&lt;li&gt;Can you reach 100?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I played it a lot while in high school and college but never reached 100, mid 90s was my best move.
+My maths has never been good enough to let me prove if the game has solution and how many.&lt;/p&gt;
+&lt;p&gt;Some weeks ago I attended a boring conference and I discovered my self playing this old game again. But this time was different, this time I thaughth “R can show me the way to win”.&lt;/p&gt;
+&lt;p&gt;My first move was to use brute force, code a script that plays the game and play it hundreds of thousands of times. I did it.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;set.seed(seed = 1000)
+tabla_vacia &amp;lt;- function(ns=10){
+  tv &amp;lt;- matrix(data = 0,nrow = ns,ncol = ns)
+  return(tv)
+}
+
+posicion_inical &amp;lt;- function(ns=10,fijo=FALSE){
+  if(!fijo){
+    inicio &amp;lt;- sample(x = 1:ns,size = 2,replace = TRUE)
+  } else {
+    inicio &amp;lt;- fijo
+  }
+  return(inicio)
+}
+
+elige_movimiento &amp;lt;- function(movimientos_posibles){
+  move &amp;lt;- sample(x = movimientos_posibles,size = 1)
+  return(move)
+}
+
+traduce_movimiento &amp;lt;- function(move){
+  #1 arriba
+  #2 derecha
+  #3 abajo
+  #4 izquierda
+  #5 arriba derecha
+  #6 abajo derecha
+  #7 abajo izquierda
+  #8 arriba izquierda
+  if (move==1) {desp &amp;lt;- c(0,-3)}
+  if (move==2) {desp &amp;lt;- c(3,0)}
+  if (move==3) {desp &amp;lt;- c(0,3)}
+  if (move==4) {desp &amp;lt;- c(-3,0)}
+  if (move==5) {desp &amp;lt;- c(2,-2)}
+  if (move==6) {desp &amp;lt;- c(2,2)}
+  if (move==7) {desp &amp;lt;- c(-2,2)}
+  if (move==8) {desp &amp;lt;- c(-2,-2)}
+  return(desp)
+}
+
+comprueba_movimiento &amp;lt;- function(tabla,posicion,desp,ns=10){
+  posicion_nueva &amp;lt;- posicion + desp
+  if(posicion_nueva[1] %in% 1:ns &amp;amp; posicion_nueva[2] %in% 1:ns){
+    if(tabla[posicion_nueva[1],posicion_nueva[2]]==0){
+      comprueba &amp;lt;- 1
+    } else {
+      comprueba &amp;lt;- 0
+    }
+  } else {
+    comprueba &amp;lt;- 0
+  }
+  return(comprueba)
+}
+
+juega &amp;lt;- function(ns=10,fijo=FALSE){
+  tabla &amp;lt;- tabla_vacia(ns = ns)
+  posicion &amp;lt;- posicion_inical(ns = ns,fijo = fijo)
+  todos_movimientos &amp;lt;- 1:8
+  for (n in 1:100){
+    tabla[posicion[1],posicion[2]] &amp;lt;- n
+    movimientos_posibles &amp;lt;- todos_movimientos
+    move &amp;lt;- elige_movimiento(movimientos_posibles)
+    desp &amp;lt;- traduce_movimiento(move = move)
+    comprueba &amp;lt;- 0
+    while(comprueba!=1){
+      comprueba &amp;lt;- comprueba_movimiento(tabla=tabla,posicion = posicion,desp = desp,ns = ns)
+      if(comprueba==1){
+        posicion &amp;lt;- posicion + desp
+        n &amp;lt;- n+1
+        tabla[posicion[1],posicion[2]] &amp;lt;- n
+      } else {
+        movimientos_posibles &amp;lt;- movimientos_posibles[movimientos_posibles!=move]
+        if(length(movimientos_posibles)==0){
+          return(list(tabla=tabla,n=n))
+        }
+        move &amp;lt;- elige_movimiento(movimientos_posibles = movimientos_posibles)
+        desp &amp;lt;- traduce_movimiento(move = move)
+      }
+    }
+  }
+  return(list(tabla=tabla,n=n))
+}
+
+juega_a_saco &amp;lt;- function(N=10000,ns=10,fijo=FALSE){
+  mejor &amp;lt;- juega(ns=ns,fijo = fijo)
+  resul &amp;lt;- vector(&amp;quot;numeric&amp;quot;,N)
+  for (i in 1:N){
+    nueva &amp;lt;- juega(ns=ns,fijo = fijo)
+    resul[i] &amp;lt;- nueva$n
+    if (nueva$n&amp;gt;mejor$n){
+      mejor &amp;lt;- nueva
+      print(mejor$n)
+    }
+  }
+  print(mejor)
+  return(resul)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This execution plays 10000 solitaires&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;resul &amp;lt;- juega_a_saco(N = 10000)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## [1] 75
+## [1] 83
+## [1] 86
+## [1] 88
+## [1] 91
+## $tabla
+##       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+##  [1,]   66   18   53   65   17   54   30   42   55    29
+##  [2,]   85    0    0   84   60    0   33   59    0    40
+##  [3,]   20    0   16   19   52   43   56   51   31    57
+##  [4,]   67    1   86   64    4   83   61   41   34    28
+##  [5,]   15    0   21   14   88   22   32   58   90    39
+##  [6,]   79   63   68   78   62   44    5   50   47     0
+##  [7,]   70    2   87   23    3   82   89   38   35    27
+##  [8,]   12   77   72   13    6   75   48    9   91    49
+##  [9,]   80   24   69   81   25   45   36   26   46    37
+## [10,]   71    0   11   76   73   10    7   74    0     8
+## 
+## $n
+## [1] 91&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;hist(resul)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2020-01-23-using-r-to-solve-old-solitaire_files/figure-html/el_solitario2%20-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;I tried harder with 100000000 solitaires and I get 99. But, where is the perfect game?&lt;/p&gt;
+&lt;p&gt;So my next move was clear, leave brute force strategy and embrace a new one: decompose the problem. This line play 1000 solitaires of 5x5 squares&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;resul2 &amp;lt;- juega_a_saco(N = 1000,ns = 5)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## [1] 25
+## $tabla
+##      [,1] [,2] [,3] [,4] [,5]
+## [1,]   24   11    6   25   12
+## [2,]    8   21   14    9   20
+## [3,]   16    4    1   17    5
+## [4,]   23   10    7   22   13
+## [5,]    2   18   15    3   19
+## 
+## $n
+## [1] 25&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;hist(resul2)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2020-01-23-using-r-to-solve-old-solitaire_files/figure-html/el_solitario3-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;It’s very easy to find a solution for a 5x5 game, so the next move is to link this solutions.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;banco_de_cuadros_correctos &amp;lt;- function(N=10000,ns=10,fijo=FALSE){
+  resul &amp;lt;- vector(&amp;quot;list&amp;quot;,N)
+  for (i in 1:N){
+    resul[[i]] &amp;lt;- juega(ns = ns,fijo = fijo)
+  }
+  resul &amp;lt;- resul[lapply(resul, function(x) x$n)==25]
+  return(resul)
+}
+
+todos_los_cuadros_correctos &amp;lt;- function(ns=10,N=1000){
+  muestras &amp;lt;- vector(&amp;quot;list&amp;quot;,ns*ns)
+  k &amp;lt;- 1
+  for (i in 1:ns){
+    for (j in 1:ns){
+      muestras[[k]]$inicio &amp;lt;- c(i,j)
+      muestras[[k]]$tablas &amp;lt;- banco_de_cuadros_correctos(N = N,ns = ns,fijo = c(i,j))
+      k &amp;lt;- k + 1
+    }
+  }
+  return(muestras)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;With this line you have a workbench with a bunch of solutions for every initial position in a 5x5 game.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;tablas &amp;lt;- suppressWarnings(todos_los_cuadros_correctos(ns = 5,N = 1000))&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Let’s start from 1,1&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;tablas[[1]]$tablas[[1]]$tabla&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;##      [,1] [,2] [,3] [,4] [,5]
+## [1,]    1   12   17    2    9
+## [2,]    6   22   25    5   19
+## [3,]   14    3    8   13   16
+## [4,]   24   11   18   23   10
+## [5,]    7   21   15    4   20&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;It finishes in 2,3 so let’s move to the right and so we have to link with a solitaire startign in 2,1&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;tablas[[6]]$tablas[[1]]$tabla&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;##      [,1] [,2] [,3] [,4] [,5]
+## [1,]   24   12   18   23   11
+## [2,]    1   21    9   14   20
+## [3,]    7   16    3    6   17
+## [4,]   25   13   19   22   10
+## [5,]    2    5    8   15    4&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This one finishes in 4,1, now move in diagonal downwards and to the right and link with a table starting in 1,3&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;tablas[[3]]$tablas[[1]]$tabla&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;##      [,1] [,2] [,3] [,4] [,5]
+## [1,]    7   19    1    6   18
+## [2,]   12   22   25   15   10
+## [3,]    2    5    8   20    4
+## [4,]   24   16   11   23   17
+## [5,]   13   21    3   14    9&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This one finishes in 2,3, now move to the left and let’s link with a new one starting in 2,5&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;tablas[[10]]$tablas[[1]]$tabla&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;##      [,1] [,2] [,3] [,4] [,5]
+## [1,]   21   15    7   20   14
+## [2,]    5   18   23   11    1
+## [3,]   25    9    3   16    8
+## [4,]   22   12    6   19   13
+## [5,]    4   17   24   10    2&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Now, i’m going to put the all together from 1 to 100&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;t1 &amp;lt;- tablas[[1]]$tablas[[1]]$tabla
+t2 &amp;lt;- tablas[[6]]$tablas[[1]]$tabla + 25
+t3 &amp;lt;- tablas[[3]]$tablas[[1]]$tabla + 50
+t4 &amp;lt;- tablas[[10]]$tablas[[1]]$tabla + 75
+tA &amp;lt;- cbind(t1,t2)
+tB &amp;lt;- cbind(t4,t3)
+t &amp;lt;- rbind(tA,tB)
+t&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;##       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+##  [1,]    1   12   17    2    9   49   37   43   48    36
+##  [2,]    6   22   25    5   19   26   46   34   39    45
+##  [3,]   14    3    8   13   16   32   41   28   31    42
+##  [4,]   24   11   18   23   10   50   38   44   47    35
+##  [5,]    7   21   15    4   20   27   30   33   40    29
+##  [6,]   96   90   82   95   89   57   69   51   56    68
+##  [7,]   80   93   98   86   76   62   72   75   65    60
+##  [8,]  100   84   78   91   83   52   55   58   70    54
+##  [9,]   97   87   81   94   88   74   66   61   73    67
+## [10,]   79   92   99   85   77   63   71   53   64    59&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Is this any useful? No, it’s totally useless.
+What can I learn from this? Brute force it’s a bad approach when your problem has infinite possibilities and you don’t know if it has one solution, many solutions, infinite solutions or not solutions at all.
+But decomposing the problem in more manageable parts it’s allways a good practice.&lt;/p&gt;
+&lt;p&gt;Has anyone better maths than me and can give me any mathematical hint about this solitaire?&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>How tennis has changed over time</title>
+      <link>/2019/08/28/how-tennis-has-changed-over-time/</link>
+      <pubDate>Wed, 28 Aug 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/2019/08/28/how-tennis-has-changed-over-time/</guid>
+      <description>
+
+
+&lt;p&gt;During the last years I have become a huge fan of tennis (both, on court and in TV). This year I followed (in TV) with attention Roland Garros and Wimbledon.&lt;/p&gt;
+&lt;p&gt;Although clay and grass are very different surfaces I’ve found the game very similar. What happened with the serve-volley game? I think it is my duty (as data freak) to found some data and play around with it.&lt;/p&gt;
+&lt;p&gt;To my delight I found &lt;a href=&#34;https://github.com/JeffSackmann/tennis_MatchChartingProject&#34;&gt;The Match Charting Project&lt;/a&gt; by &lt;a href=&#34;http://www.jeffsackmann.com/&#34;&gt;Jeff Sackman&lt;/a&gt;, standing ovation for this amazing project.&lt;/p&gt;
+&lt;p&gt;So, I’ve done some code to find out.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(RCurl)
+
+matches_file_m &amp;lt;- &amp;quot;https://raw.githubusercontent.com/JeffSackmann/tennis_MatchChartingProject/master/charting-m-matches.csv&amp;quot;
+matches_file_w &amp;lt;- &amp;quot;https://raw.githubusercontent.com/JeffSackmann/tennis_MatchChartingProject/master/charting-w-matches.csv&amp;quot;
+points_file_m &amp;lt;- &amp;quot;https://raw.githubusercontent.com/JeffSackmann/tennis_MatchChartingProject/master/charting-m-points.csv&amp;quot;
+points_file_w &amp;lt;- &amp;quot;https://raw.githubusercontent.com/JeffSackmann/tennis_MatchChartingProject/master/charting-w-points.csv&amp;quot;
+
+download_matches &amp;lt;- function(){
+    if(!exists(&amp;quot;df_matches&amp;quot;)){
+      matches_m &amp;lt;- read.csv(file = matches_file_m,header = TRUE,sep = &amp;quot;,&amp;quot;,quote = &amp;quot;&amp;quot;)
+      matches_w &amp;lt;- read.csv(file = matches_file_w,header = TRUE,sep = &amp;quot;,&amp;quot;,quote = &amp;quot;&amp;quot;)
+      df_matches &amp;lt;- bind_rows(matches_w,matches_m)
+    }
+    return(df_matches)
+}
+
+download_points &amp;lt;- function(){
+  if(!exists(&amp;quot;df_points&amp;quot;)){
+    points_m &amp;lt;- read.csv(file = points_file_m,header = TRUE,sep = &amp;quot;,&amp;quot;,quote = &amp;quot;&amp;quot;)
+    points_w &amp;lt;- read.csv(file = points_file_w,header = FALSE,sep = &amp;quot;,&amp;quot;,quote = &amp;quot;&amp;quot;)
+    colnames(points_w) &amp;lt;- colnames(points_m)
+    points_m$TB. &amp;lt;- as.integer(points_m$TB.)
+    df_points &amp;lt;- bind_rows(points_w,points_m)
+  }
+  return(df_points)
+}
+
+get_players &amp;lt;- function(){
+  df_matches &amp;lt;- download_matches()
+  players &amp;lt;- unique(c(df_matches$Player.1,df_matches$Player.2))
+  return(players)
+}
+
+get_tournaments &amp;lt;- function(){
+  df_matches &amp;lt;- download_matches()
+  tournaments &amp;lt;- unique(df_matches$Tournament)
+  return(tournaments)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;cols &amp;lt;- c(&amp;quot;RolandGarros&amp;quot; = &amp;quot;#D35221&amp;quot;, &amp;quot;Wimbledon&amp;quot; = &amp;quot;#1B7649&amp;quot;)
+
+df_points &amp;lt;- download_points()&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Warning in download_points(): NAs introduced by coercion&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;df_matches &amp;lt;- download_matches()
+
+id_matches &amp;lt;- df_matches %&amp;gt;% dplyr::filter(Tournament %in% c(&amp;quot;Roland Garros&amp;quot;,&amp;quot;Wimbledon&amp;quot;)) %&amp;gt;% dplyr::select(match_id,Tournament) %&amp;gt;% dplyr::group_split(Tournament)
+
+l_point &amp;lt;- vector(&amp;quot;list&amp;quot;,2)
+for (i in 1:2){
+  l_point[[i]] &amp;lt;- df_points %&amp;gt;% dplyr::filter(match_id %in% id_matches[[i]]$match_id)
+}
+l_point[[1]]$Tournament &amp;lt;- &amp;quot;RolandGarros&amp;quot;
+l_point[[2]]$Tournament &amp;lt;- &amp;quot;Wimbledon&amp;quot;
+l_point &amp;lt;- bind_rows(l_point)
+
+#porcentaje de Aces
+resultado1 &amp;lt;- l_point %&amp;gt;% dplyr::group_by(Tournament) %&amp;gt;% dplyr::summarise(PorcentajeAces=100*sum(isAce)/n())
+resultado1&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 2 x 2
+##   Tournament   PorcentajeAces
+##   &amp;lt;chr&amp;gt;                 &amp;lt;dbl&amp;gt;
+## 1 RolandGarros           4.03
+## 2 Wimbledon              8.77&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;resultado2 &amp;lt;- l_point %&amp;gt;% dplyr::group_by(Tournament,year=substring(l_point$match_id,1,4)) %&amp;gt;% dplyr::summarise(PorcentageAces=100*sum(isAce)/n())
+
+g1 &amp;lt;- ggplot(resultado2) + geom_line(aes(x=year,y=PorcentageAces,color=Tournament,group=Tournament))  + theme_minimal() + scale_colour_manual(values = cols) + theme(axis.text.x =element_text(angle = 90, hjust = 1))
+plot(g1)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2019-08-28-how-tennis-has-changed-over-time_files/figure-html/code1-1.png&#34; width=&#34;960&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;Wimbledon still observes higher percentage of aces, but in both tournaments percentaje of aces has been growing.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;#longitud del punto
+resultado3 &amp;lt;- l_point %&amp;gt;% dplyr::group_by(Tournament) %&amp;gt;% dplyr::summarise(AverageLengthRally=mean(rallyLen))
+resultado3&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 2 x 2
+##   Tournament   AverageLengthRally
+##   &amp;lt;chr&amp;gt;                     &amp;lt;dbl&amp;gt;
+## 1 RolandGarros               4.49
+## 2 Wimbledon                  2.89&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;resultado4 &amp;lt;- l_point %&amp;gt;% dplyr::group_by(Tournament,year=substring(l_point$match_id,1,4)) %&amp;gt;% dplyr::summarise(AverageLengthRally=mean(rallyLen))
+
+g2 &amp;lt;- ggplot(resultado4) + geom_line(aes(x=year,y=AverageLengthRally,color=Tournament,group=Tournament)) + theme_minimal() + scale_colour_manual(values = cols) + theme(axis.text.x =element_text(angle = 90, hjust = 1))
+plot(g2)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2019-08-28-how-tennis-has-changed-over-time_files/figure-html/code2-1.png&#34; width=&#34;960&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;Here you have, Wimbledon still has shorter rallies but the difference is getting smaller. It has surprised me the length of the points in Roland Garros in the 70s and 80s.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;#Errores no forzados
+resultado5 &amp;lt;- l_point %&amp;gt;% dplyr::group_by(Tournament) %&amp;gt;% dplyr::summarise(UnforcedErrors=100*sum(isUnforced)/n())
+resultado5&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 2 x 2
+##   Tournament   UnforcedErrors
+##   &amp;lt;chr&amp;gt;                 &amp;lt;dbl&amp;gt;
+## 1 RolandGarros           33.9
+## 2 Wimbledon              23.6&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;resultado6 &amp;lt;- l_point %&amp;gt;% dplyr::group_by(Tournament,year=substring(l_point$match_id,1,4)) %&amp;gt;% dplyr::summarise(UnforcedErrors=100*sum(isUnforced)/n())
+
+g3 &amp;lt;- ggplot(resultado6) + geom_line(aes(x=year,y=UnforcedErrors,color=Tournament,group=Tournament)) + theme_minimal() + scale_colour_manual(values = cols) + theme(axis.text.x =element_text(angle = 90, hjust = 1))
+plot(g3)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2019-08-28-how-tennis-has-changed-over-time_files/figure-html/code3-1.png&#34; width=&#34;960&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;Unforced errors in Wimbledon have been increasing, I guess this is related with the length of the rallies&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;#Puntos que acaban en volea
+resultado7 &amp;lt;- l_point %&amp;gt;% dplyr::mutate(lastshot=str_sub(string = rallyNoDirection,start = -1)) %&amp;gt;% dplyr::mutate(lastisvolley=ifelse(lastshot %in% c(&amp;quot;v&amp;quot;,&amp;quot;z&amp;quot;,&amp;quot;o&amp;quot;,&amp;quot;p&amp;quot;),TRUE,FALSE )) %&amp;gt;% dplyr::group_by(Tournament) %&amp;gt;% dplyr::summarise(LastVolley=100*sum(lastisvolley)/n())
+resultado7&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 2 x 2
+##   Tournament   LastVolley
+##   &amp;lt;chr&amp;gt;             &amp;lt;dbl&amp;gt;
+## 1 RolandGarros       8.37
+## 2 Wimbledon         13.3&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;resultado8 &amp;lt;- l_point %&amp;gt;% dplyr::mutate(lastshot=str_sub(string = rallyNoDirection,start = -1)) %&amp;gt;% dplyr::mutate(lastisvolley=ifelse(lastshot %in% c(&amp;quot;v&amp;quot;,&amp;quot;z&amp;quot;,&amp;quot;o&amp;quot;,&amp;quot;p&amp;quot;),TRUE,FALSE )) %&amp;gt;% dplyr::group_by(Tournament,year=substring(l_point$match_id,1,4)) %&amp;gt;% dplyr::summarise(LastVolley=100*sum(lastisvolley)/n())
+
+g4 &amp;lt;- ggplot(resultado8) + geom_line(aes(x=year,y=LastVolley,color=Tournament,group=Tournament)) + theme_minimal() + scale_colour_manual(values = cols) + theme(axis.text.x =element_text(angle = 90, hjust = 1))
+plot(g4)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2019-08-28-how-tennis-has-changed-over-time_files/figure-html/code4-1.png&#34; width=&#34;960&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;This is striking, points finishing in volley have been decreasing abruptly and nowadays are difficult to see.&lt;/p&gt;
+&lt;p&gt;It seems that serve-volley game is outdated even in its sanctuary and baseline tennis reigns in Wimbledon&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>Are pollen forecast good enough?</title>
-      <link>https://rafaelmenmell.netlify.com/2019/02/14/are-pollen-forecast-good-enough/</link>
+      <link>/2019/02/14/are-pollen-forecast-good-enough/</link>
       <pubDate>Thu, 14 Feb 2019 00:00:00 +0000</pubDate>
       
       <guid>/2019/02/14/are-pollen-forecast-good-enough/</guid>
-      <description>Introduction Maybe some of you (in my huge audience) have the bad luck of being allergic to pollen like myself. Since mid-January to the end of June I have to live very close to my antihistamines. Here in Madrid where I live health authorities issue newsletters (by email) with observations and forecast.
-Although the service has some deficiencies (like not being available in weekends and fairy days) I found it useful, but how good are the forecasts provided?</description>
+      <description>
+
+
+&lt;div id=&#34;introduction&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;Maybe some of you (in my huge audience) have the bad luck of being allergic to pollen like myself. Since mid-January to the end of June I have to live very close to my antihistamines. Here in Madrid where I live health authorities issue newsletters (by email) with observations and forecast.&lt;/p&gt;
+&lt;p&gt;Although the service has some deficiencies (like not being available in weekends and fairy days) I found it useful, but how good are the forecasts provided? Let’s take a look.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;the-data&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;The data&lt;/h2&gt;
+&lt;p&gt;Some years ago I made a request for the historical data of pollen observations from Comunidad de Madrid. I never got an answer so I decided to scrap he data from the pdf in the emails. Quite hard.&lt;/p&gt;
+&lt;p&gt;Here you have some code to download the attachments from the email sent by &lt;a href=&#34;mailto:sanidadambiental.polen@salud.madrid.org&#34;&gt;sanidadambiental.polen@salud.madrid.org&lt;/a&gt;&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(httr)
+library(gmailr)
+
+saveAttachaments = function(id,folder)
+{
+  save_attachments(message(id),path=folder)
+}
+
+gmail_auth(secret = &amp;quot;SECRET&amp;quot;,scope = &amp;quot;read_only&amp;quot;,id = &amp;quot;ID&amp;quot;)
+mensajes &amp;lt;- messages(&amp;quot;from:sanidadambiental.polen@salud.madrid.org&amp;quot;,700)
+id.mensajes &amp;lt;- id(mensajes)
+for (i in 1:length(id.mensajes)){
+  date &amp;lt;- as.POSIXct(as.numeric(message(id(mensajes)[i])$internalDate)/1000,origin=&amp;quot;1970-01-01&amp;quot;)
+  date &amp;lt;- as.character(date,format=&amp;quot;%Y%m%d&amp;quot;)
+  print(date)
+  folder &amp;lt;- sprintf(&amp;quot;attach/%s&amp;quot;,date)
+  dir.create(folder,showWarnings = FALSE)
+  saveAttachaments(id.mensajes[i],folder)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;With a little patience you get a folder for every email with de pdf files attached inside.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;the-data-1&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;The data&lt;/h2&gt;
+&lt;p&gt;You all know pdf files are not good to data transfer but this is what I have, so I have to work with it. Now I show an example of pdf file with the observations:&lt;/p&gt;
+&lt;div class=&#34;figure&#34;&gt;
+&lt;embed src=&#34;/img/CUPR.pdf&#34; style=&#34;width:65.0%&#34; /&gt;
+&lt;p class=&#34;caption&#34;&gt;Pdf file with observations&lt;/p&gt;
+&lt;/div&gt;
+&lt;p&gt;To scrap the observations data from these pdf files I use this code with the tabulizer package (Disclaimer: this code is quite old, and old code can be embarrasing)&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;readPDFobservaciones_tabulizer &amp;lt;- function(tipo=&amp;quot;CUPR&amp;quot;,fecha){ 
+  if(file.exists(sprintf(&amp;quot;attach/%s/%s.pdf&amp;quot;,fecha,tipo))){
+    pdffile &amp;lt;- sprintf(&amp;quot;attach/%s/%s.pdf&amp;quot;,fecha,tipo)
+    table &amp;lt;- extract_tables(file = pdffile)[[1]]
+    coltables &amp;lt;- table[1,]
+    #si hay columna media la quito porque da problemas y la puedo calcular a posterior
+    if (&amp;quot;media&amp;quot; %in% tolower(coltables)){
+      table &amp;lt;- table[,-which(tolower(coltables)==&amp;quot;media&amp;quot;)]
+    } else {
+      #si no hay es la ultima columna
+      table &amp;lt;- table[,-ncol(table)]
+    }
+    coltables &amp;lt;- c(&amp;quot;fechas&amp;quot;,table[1,])
+    #si hay alguna columna con todo vacio la quitamos
+    columnas &amp;lt;- which(apply(table,2,FUN=function(x) sum(x!=&amp;quot;&amp;quot;))==0)
+    if (length(columnas)!=0){
+      table &amp;lt;- table[,-columnas]
+    }
+    filas &amp;lt;- which(apply(table,1,FUN=function(x) sum(x!=&amp;quot;&amp;quot;))==0)
+    if (length(filas)!=0){
+      table &amp;lt;- table[-filas,]
+    }
+    coltables &amp;lt;- coltables[coltables!=&amp;quot;&amp;quot;]
+    table &amp;lt;- as.data.frame(table[-1,])
+    colnames(table) &amp;lt;- coltables
+    
+    #un poco de tuneo de los nombre de las columnas
+    cols &amp;lt;- colnames(table)
+    cols &amp;lt;- gsub(pattern = &amp;quot;Media&amp;quot;,replacement = &amp;quot;&amp;quot;,cols)
+    cols &amp;lt;- gsub(pattern = &amp;#39;Madrid-.* &amp;#39;,&amp;quot;&amp;quot;,cols)
+    cols[cols==&amp;quot;Madrid-Arganzuela&amp;quot;] &amp;lt;- &amp;quot;Arganzuela&amp;quot;
+    cols[cols==&amp;quot;Barrio&amp;quot;] &amp;lt;- &amp;quot;Salamanca&amp;quot;
+    cols[cols==&amp;quot;Ciudad&amp;quot;] &amp;lt;- &amp;quot;Universitaria&amp;quot;
+    colnames(table) &amp;lt;- cols
+    return(table)
+  } else {
+    print(&amp;quot;Ese archivo no existe&amp;quot;)
+  }
+}
+
+
+SerieObservaciones &amp;lt;- function(tipo=&amp;quot;CUPR&amp;quot;){
+  lf &amp;lt;- list.dirs(&amp;quot;attach/&amp;quot;,full.names = FALSE)
+  obs &amp;lt;- list()
+  n &amp;lt;- 1
+  for (l in lf){
+    print(l)
+    #o &amp;lt;- readPDFobservaciones(fecha=l)
+    o &amp;lt;- readPDFobservaciones_tabulizer(fecha=l)
+    if (is.data.frame(o)){
+      obs[[n]] &amp;lt;- o
+      n &amp;lt;- n+1
+    }
+  }
+  fechas &amp;lt;- unique(bind_rows(obs)$fechas)
+  fechas &amp;lt;- fechas[!is.na(fechas)]
+  cols &amp;lt;- colnames(obs[[which(sapply(obs, ncol)==max(sapply(obs, ncol)))[1]]])
+  obs.def &amp;lt;- as.data.frame(matrix(NA,nrow=length(fechas),ncol=length(cols)))
+  colnames(obs.def) &amp;lt;- cols
+  obs.def$fechas &amp;lt;- fechas
+  #relleno el pavo
+  for (i in 1:length(obs)){
+    print(i)
+    for (r in 1:nrow(obs[[i]])){
+      o &amp;lt;- obs[[i]][r,]
+      if(!is.na(o$fecha)){
+      #print(o$fecha)
+      columnas.quetengo &amp;lt;- colnames(o)[colnames(o) %in% cols]
+      columnas.quetengo &amp;lt;- columnas.quetengo[columnas.quetengo!=&amp;quot;fechas&amp;quot;]
+      obs.def[obs.def$fechas==o$fecha,columnas.quetengo] &amp;lt;- as.integer(o[,columnas.quetengo])
+      }
+    }
+  }
+  obs.def$media &amp;lt;- rowMeans(obs.def[,-1],na.rm = TRUE)
+  return(obs.def)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Forecast appears as an image in the body of the email and here you have the code to read it based in the color of the image&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;readPrediccionesPDF &amp;lt;- function(tipo=&amp;quot;CUPR&amp;quot;,fecha){
+  if (tipo==&amp;quot;CUPR&amp;quot;) {
+    texto &amp;lt;- &amp;quot;Cupre&amp;quot;
+    texto2 &amp;lt;- &amp;quot;cup&amp;quot;
+    }
+  lf &amp;lt;- list.files(path=sprintf(&amp;quot;attach/%s&amp;quot;,fecha))
+  file &amp;lt;- lf[grep(texto,lf)]
+  file &amp;lt;- c(file,lf[grep(tipo,lf)])
+  file &amp;lt;- c(file,lf[grep(texto2,lf)])
+  file &amp;lt;- file[file!=&amp;quot;CUPR.pdf&amp;quot;]
+  if (length(file)&amp;gt;0){
+  file &amp;lt;- file[which(nchar(file)==max(nchar(file)))]
+  command &amp;lt;- sprintf(&amp;#39;pdfimages -j attach//%s//&amp;quot;%s&amp;quot; image&amp;#39;,fecha,file)
+  system(command)
+  colores &amp;lt;- list()
+  valores &amp;lt;- character()
+  lf.jpg &amp;lt;- list.files(path=&amp;quot;.&amp;quot;,pattern = &amp;quot;.jpg&amp;quot;)
+  lf.jpg &amp;lt;- lf.jpg[!grepl(&amp;quot;0000.jpg&amp;quot;,lf.jpg)]
+  lf.jpg &amp;lt;- lf.jpg[!grepl(&amp;quot;000.jpg&amp;quot;,lf.jpg)]
+  for (n in 1:4){
+    colores[[n]] &amp;lt;- raster::extract(stack(lf.jpg[n]),cbind(0,0))
+    if (sum(colores[[n]]==c(153,1,52))==3) {valores[n] &amp;lt;- &amp;quot;MA&amp;quot;}
+    if (sum(colores[[n]]==c(254,153,0))==3) {valores[n] &amp;lt;- &amp;quot;A&amp;quot;}
+    if (sum(colores[[n]]==c(0,129,2))==3) {valores[n] &amp;lt;- &amp;quot;M&amp;quot;}
+    if (sum(colores[[n]]==c(0,128,1))==3) {valores[n] &amp;lt;- &amp;quot;M&amp;quot;}
+    if (sum(colores[[n]]==c(48,0,100))==3) {valores[n] &amp;lt;- &amp;quot;B&amp;quot;}
+    if (sum(colores[[n]]==c(255,193,214))==3) {valores[n] &amp;lt;- &amp;quot;MA&amp;quot;}
+    if (sum(colores[[n]]==c(255,197,11))==3) {valores[n] &amp;lt;- &amp;quot;A&amp;quot;}
+    if (sum(colores[[n]]==c(178,215,110))==3) {valores[n] &amp;lt;- &amp;quot;M&amp;quot;}
+    if (sum(colores[[n]]==c(50,2,102))==3) {valores[n] &amp;lt;- &amp;quot;B&amp;quot;}
+    if (sum(colores[[n]]==c(51,0,101))==3) {valores[n] &amp;lt;- &amp;quot;B&amp;quot;}
+    if (sum(colores[[n]]==c(236,217,245))==3) {valores[n] &amp;lt;- &amp;quot;B&amp;quot;}
+    if (sum(colores[[n]]==c(237,217,245))==3) {valores[n] &amp;lt;- &amp;quot;B&amp;quot;}
+    if (sum(colores[[n]]==c(62,79,105))==3) {valores[n] &amp;lt;- &amp;quot;B&amp;quot;}
+    if (sum(colores[[n]]==c(61,164,75))==3) {valores[n] &amp;lt;- &amp;quot;M&amp;quot;}
+  }
+  unlink(lf.jpg)
+  return(valores)
+  } else {
+    return(NA)
+  }
+}
+
+SeriePredicciones &amp;lt;- function(tipo=&amp;quot;CUPR&amp;quot;){
+  lf &amp;lt;- list.dirs(&amp;quot;attach/&amp;quot;,full.names = FALSE)[-1]
+  preds &amp;lt;- list()
+  n &amp;lt;- 1
+  for (l in lf){
+    print(l)
+    o &amp;lt;- readPrediccionesPDF(fecha=l)
+    print(o)
+    if (is.character(o)){
+      preds[[n]] &amp;lt;- as.data.frame(t(c(l,o)))
+      n &amp;lt;- n+1
+    }
+  }
+  preds &amp;lt;- bind_rows(preds)
+  colnames(preds) &amp;lt;- c(&amp;quot;fecha&amp;quot;,&amp;quot;D-1&amp;quot;,&amp;quot;D0&amp;quot;,&amp;quot;D1&amp;quot;,&amp;quot;D2&amp;quot;)
+  preds$fecha &amp;lt;- as.Date(preds$fecha,format=&amp;quot;%Y%m%d&amp;quot;)
+  return(preds)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In this graph you can see the complete historical series of Cupressaceae/Taxacea (my worst enemy) from 2014 to present day. Please notice the huge peak in February 2019, those were rough days.&lt;/p&gt;
+&lt;div class=&#34;figure&#34;&gt;
+&lt;img src=&#34;/img/polen_graph1.png&#34; alt=&#34;Cupressaceae-Taxaceae pollen&#34; /&gt;
+&lt;p class=&#34;caption&#34;&gt;Cupressaceae-Taxaceae pollen&lt;/p&gt;
+&lt;/div&gt;
+&lt;p&gt;Finally I checked forecast quality using &lt;a href=&#34;http://www.cawcr.gov.au/projects/verification/&#34;&gt;Gerrity Score&lt;/a&gt; because “GS does not reward conservative forecasting like HSS and HK, but rather rewards forecasts for correctly predicting the less likely categories”.&lt;/p&gt;
+&lt;p&gt;Gerrity Score for persistence (using yesterday observation as today forecast): 0.366&lt;/p&gt;
+&lt;p&gt;Gerrity Socre for climatology (using average value for this day as today forecast): 0.215&lt;/p&gt;
+&lt;p&gt;Gerrity Score for forecast: 0.32&lt;/p&gt;
+&lt;p&gt;So, forecast seems to be not very useful compared with persistence.&lt;/p&gt;
+&lt;/div&gt;
+</description>
     </item>
     
     <item>
       <title>Developing a package to analyze data of the hospital morbidity survey</title>
-      <link>https://rafaelmenmell.netlify.com/2018/10/20/developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey/</link>
+      <link>/2018/10/20/developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey/</link>
       <pubDate>Sat, 20 Oct 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/10/20/developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey/</guid>
-      <description>Introduction This post is going to be the most ambitious one so far. Months ago I decided to develope a R package from scratch to learn a little about the process. So I dug up some code I wrote and I got to the work. And of course, for a job like that you want to work properly so I followed R packages by Hadley Wickham
- The data My package downloads and gives functions to analyze data from the Hospital morbidity survey from Spanish National Institute of Statistics, this data is quite interesting for several reasons:</description>
+      <description>
+
+
+&lt;div id=&#34;introduction&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;This post is going to be the most ambitious one so far. Months ago I decided to develope a R package from scratch to learn a little about the process. So I dug up some code I wrote and I got to the work. And of course, for a job like that you want to work properly so I followed &lt;a href=&#34;http://r-pkgs.had.co.nz/&#34;&gt;R packages by Hadley Wickham&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;the-data&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;The data&lt;/h2&gt;
+&lt;p&gt;My package downloads and gives functions to analyze data from the &lt;a href=&#34;https://www.ine.es/dyngs/INEbase/en/operacion.htm?c=Estadistica_C&amp;amp;cid=1254736176778&amp;amp;menu=ultiDatos&amp;amp;idp=1254735573175&#34;&gt;Hospital morbidity survey&lt;/a&gt; from &lt;a href=&#34;https://www.ine.es/en/welcome.shtml&#34;&gt;Spanish National Institute of Statistics&lt;/a&gt;, this data is quite interesting for several reasons:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Health data is a hot topic these days&lt;/li&gt;
+&lt;li&gt;Microdata are available from 1978&lt;/li&gt;
+&lt;li&gt;There is enough data to descriptive analysis and forecasting also&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;One interesting thing in this data is that they have the code corresponding with the &lt;a href=&#34;https://eciemaps.msssi.gob.es/ecieMaps/browser/metabuscador.html&#34;&gt;International Classification of Diseases&lt;/a&gt; which allows a highly detailled analysis. In the middle of the developing process new data were made available. Of course, theses are always good news, but… International Classification of Diseases changed from 9 version to 10. Important disclaimer here, I’m not a doctor and the assumptions I made to translate CIE10 to CIE9 can be wrong.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;the-package&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;The package&lt;/h2&gt;
+&lt;p&gt;The package is hosted in the &lt;a href=&#34;https://github.com/rOpenSpain/MorbiditySpainR&#34;&gt;ROpenSpain gitlab&lt;/a&gt; since I thougth it would give visibility and would made it more colaborative. &lt;a href=&#34;https://github.com/rOpenSpain/MorbiditySpainR/blob/master/README.md&#34;&gt;Here&lt;/a&gt; you can find a very short intoduction to the package.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;some-descriptive-analysis&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;Some descriptive analysis&lt;/h2&gt;
+&lt;p&gt;Once I developed the package (I may write another post with the details) I used it to make some descriptive analysis. This dataset is awesome and a lot of descriptive analysis can be done. Let’s have fun with data!!&lt;/p&gt;
+&lt;div id=&#34;installing-the-package&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Installing the package&lt;/h3&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;devtools::install_github(&amp;quot;rOpenSpain/MorbiditySpainR&amp;quot;,quiet = TRUE)
+suppressPackageStartupMessages(library(MorbiditySpainR))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(geofacet))&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div id=&#34;downloading-data&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Downloading data&lt;/h3&gt;
+&lt;p&gt;I want to get a dataset light enough to do some descriptive analysis with my personal laptop so I dowload data from 2010 to 2014.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;if(!file.exists(&amp;quot;data.rds&amp;quot;)){
+  data &amp;lt;- GetMorbiData(y1 = 2010,y2 = 2014)
+  saveRDS(data,&amp;quot;data.rds&amp;quot;)
+} else {
+  data &amp;lt;- readRDS(&amp;quot;data.rds&amp;quot;)
+}
+dplyr::glimpse(data)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Observations: 23,069,431
+## Variables: 10
+## $ prov_hosp     &amp;lt;int&amp;gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+## $ sexo          &amp;lt;int&amp;gt; 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 2, 1, 1, 2, 2, 2, ...
+## $ prov_res      &amp;lt;int&amp;gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+## $ diag_in       &amp;lt;int&amp;gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+## $ diag_ppal     &amp;lt;chr&amp;gt; &amp;quot;3019&amp;quot;, &amp;quot;3770&amp;quot;, &amp;quot;5532&amp;quot;, &amp;quot;2851&amp;quot;, &amp;quot;8518&amp;quot;, &amp;quot;7865&amp;quot;, ...
+## $ motivo_alta   &amp;lt;int&amp;gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 3, 1, 1, 3, ...
+## $ estancia      &amp;lt;int&amp;gt; 3, 1, 2, 1, 1, 2, 1, 2, 2, 4, 5, 20, 1, 3, 6, 1,...
+## $ cie           &amp;lt;dbl&amp;gt; 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, ...
+## $ fecha_ingreso &amp;lt;date&amp;gt; 2010-08-29, 2010-04-30, 2010-04-29, 2009-12-31,...
+## $ edad          &amp;lt;int&amp;gt; 55, 90, 60, 45, 62, 55, 61, 66, 25, 46, 100, 46,...&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div id=&#34;exploratory-analysis&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Exploratory analysis&lt;/h3&gt;
+&lt;p&gt;Regrettably we have an issue here in Spain with consumption of alcohol by minors, some times this consumption may end up in a hospital emergency, so let’s find out this in our data.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;data &amp;lt;- readRDS(&amp;quot;data.rds&amp;quot;)
+ll &amp;lt;- data %&amp;gt;% filter(year(fecha_ingreso)&amp;gt;=2010)
+
+ll2 &amp;lt;- ll %&amp;gt;% FilterEmergency() %&amp;gt;% filter(edad&amp;lt;18) %&amp;gt;% FilterDiagnosis2(35)
+ll2 &amp;lt;- ll2 %&amp;gt;% AddDiagnosis3() %&amp;gt;% ReduceData(provincia = TRUE,date = &amp;quot;year&amp;quot;,diag = &amp;quot;diag3&amp;quot;)
+diag2.35 &amp;lt;- unique(ll2$diag3)
+diag2.35 &amp;lt;- diag2.35[grepl(&amp;quot;alcohol&amp;quot;,tolower(diag2.35))]
+ll2 &amp;lt;- ll2 %&amp;gt;% filter(diag3 %in% diag2.35)
+ll2 &amp;lt;- ll2 %&amp;gt;% SetPrevalence()
+ll2 &amp;lt;- ll2 %&amp;gt;% dplyr::group_by(prov,fecha) %&amp;gt;% dplyr::summarise(total=sum(total.prev))
+ll2$code &amp;lt;- sprintf(&amp;quot;%02d&amp;quot;,ll2$prov)
+ll2$year &amp;lt;- year(ll2$fecha)
+prov.graf &amp;lt;- geofacet::spain_prov_grid1
+ll2 &amp;lt;- full_join(ll2,prov.graf,by=&amp;quot;code&amp;quot;)
+
+ll2.media &amp;lt;- mean(ll2$total,na.rm=TRUE)
+
+g &amp;lt;- ggplot(data=ll2) + geom_bar(aes(x=year,y=total),stat=&amp;quot;identity&amp;quot;,position=&amp;quot;dodge&amp;quot;) + geom_hline(yintercept = ll2.media,color=&amp;quot;red&amp;quot;) + facet_geo(~ name, grid = &amp;quot;spain_prov_grid1&amp;quot;) +labs(title=&amp;quot;Prevalence of hospital emergencies related with alcohol consumption by minors&amp;quot;,subtitle=&amp;quot;Cases by 100.000 habitants&amp;quot;,caption=&amp;quot;Hospital morbidity survey.2010-2014&amp;quot;) + xlab(&amp;quot;&amp;quot;) + ylab(&amp;quot;&amp;quot;) + theme_bw() + theme(axis.text=element_text(size=6, angle=90),strip.text = element_blank(),strip.background = element_blank())
+plot(g)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-20-developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey_files/figure-html/explo1-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;Another descriptive analysis we can do with dataset has the goal of knowing which are the most common sprain in people between 30 and 45 years, splitting resulst by sex.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;data &amp;lt;- readRDS(&amp;quot;data.rds&amp;quot;)
+lesiones &amp;lt;- data %&amp;gt;% FilterEmergency() %&amp;gt;% filter(edad&amp;gt;=30 &amp;amp; edad&amp;lt;=45) %&amp;gt;% FilterDiagnosis2(96) %&amp;gt;% AddDiagnosis3()
+lesiones &amp;lt;- lesiones %&amp;gt;% ReduceData(provincia = TRUE,date = &amp;quot;day&amp;quot;,diag = &amp;quot;diag3&amp;quot;,sex=TRUE)
+
+lesiones.y &amp;lt;- lesiones %&amp;gt;% group_by(diag=diag3,sex=sex) %&amp;gt;% summarise(total=sum(total))
+esguinces &amp;lt;- lesiones.y %&amp;gt;% group_by(diag) %&amp;gt;% summarise(tt=sum(total)) %&amp;gt;% top_n(10,tt)
+esguinces &amp;lt;- esguinces$diag
+lesiones.y &amp;lt;- lesiones.y %&amp;gt;% filter(diag %in% esguinces)
+lesiones.y$sex &amp;lt;- factor(x = lesiones.y$sex,labels = c(&amp;quot;Male&amp;quot;,&amp;quot;Female&amp;quot;))
+
+g2 &amp;lt;- ggplot(data=lesiones.y) + geom_bar(aes(x=sex,y=total),stat=&amp;quot;identity&amp;quot;,position=&amp;quot;dodge&amp;quot;) + facet_wrap(~diag,nrow = 2,ncol = 5,scales = &amp;quot;free&amp;quot;) + labs(title=&amp;quot;Prevalence of hospital emergencies related with sprains&amp;quot;,subtitle=&amp;quot;Total cases&amp;quot;,caption=&amp;quot;Hospital morbidity survey.2010-2014&amp;quot;) + xlab(&amp;quot;Sex&amp;quot;) + ylab(&amp;quot;&amp;quot;) + theme_bw()
+plot(g2)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-20-developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey_files/figure-html/explo2-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;The next analysis imitates the famous &lt;a href=&#34;https://en.wikipedia.org/wiki/MythBusters&#34;&gt;Myth busters&lt;/a&gt; with data and answer the question of whether they are born more babies with full moon.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;data &amp;lt;- readRDS(&amp;quot;data.rds&amp;quot;)
+partos &amp;lt;- data %&amp;gt;% FilterEmergency() %&amp;gt;% FilterDiagnosis2(77) %&amp;gt;%  ReduceData(provincia = FALSE,date = &amp;quot;day&amp;quot;,sex = FALSE)
+library(lunar)
+partos$phase &amp;lt;- lunar.phase(partos$fecha,name=8)
+partos &amp;lt;- partos %&amp;gt;% group_by(phase) %&amp;gt;% summarise(total=sum(total))
+
+g3 &amp;lt;- ggplot(partos) + geom_bar(aes(x=phase,y=total),stat=&amp;quot;identity&amp;quot;,position = &amp;quot;dodge&amp;quot;) + labs(title=&amp;quot;Number of births and moon phase&amp;quot;,subtitle=&amp;quot;Total cases&amp;quot;,caption=&amp;quot;Hospital morbidity survey.2010-2014&amp;quot;) + xlab(&amp;quot;Fase Lunar&amp;quot;) + ylab(&amp;quot;&amp;quot;) + theme_bw()
+plot(g3)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-20-developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey_files/figure-html/explo3-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;The last example builds a temporal series of hospital admissions of minors related with repiratorial diseases (flu and pneumonia) in Madrid. With this temporal serie we can construct a mean serie and compare them both to find epimediological episodes.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(zoo)
+data &amp;lt;- readRDS(&amp;quot;data.rds&amp;quot;)
+ll.gripe &amp;lt;- data %&amp;gt;% FilterProvincia(28) %&amp;gt;% FilterEmergency() %&amp;gt;% dplyr::filter(edad&amp;lt;18) %&amp;gt;% FilterDiagnosis2(57) %&amp;gt;% ReduceData(provincia = TRUE,date=&amp;quot;day&amp;quot;,sex = FALSE) %&amp;gt;% SetPrevalence(pop = &amp;quot;total&amp;quot;)
+ll.gripe$yday &amp;lt;- yday(ll.gripe$fecha)
+ll.gripe.clim &amp;lt;- ll.gripe %&amp;gt;% dplyr::group_by(yday) %&amp;gt;% dplyr::summarise(mean=mean(total.prev,na.rm=TRUE))
+
+ll.gripe.rollmean &amp;lt;- bind_rows(ll.gripe.clim,ll.gripe.clim,ll.gripe.clim)
+ll.gripe.rollmean &amp;lt;- rollmean(ll.gripe.rollmean$mean,15,fill=NA)[367:732]
+ll.gripe.clim$mean &amp;lt;- ll.gripe.rollmean
+
+# g4 &amp;lt;- ggplot(ll.gripe.clim) + geom_line(aes(x=yday,y=mean))
+ll.gripe &amp;lt;- full_join(ll.gripe,ll.gripe.clim,by=&amp;quot;yday&amp;quot;)
+ll.gripe$color &amp;lt;- ifelse(test = ll.gripe$total.prev&amp;gt;ll.gripe$mean,&amp;quot;si&amp;quot;,&amp;quot;no&amp;quot;)
+cols &amp;lt;- c(&amp;quot;no&amp;quot; = &amp;quot;gray70&amp;quot;, &amp;quot;si&amp;quot; = &amp;quot;red&amp;quot;)
+ll.gripe &amp;lt;- ll.gripe %&amp;gt;% dplyr::filter(year(fecha)&amp;gt;=2010)
+g4 &amp;lt;- ggplot(ll.gripe) + geom_bar(aes(x=fecha,y=total.prev,fill=color),stat=&amp;quot;identity&amp;quot;,position = &amp;quot;dodge&amp;quot;) + geom_line(aes(x=fecha,y=mean)) + facet_wrap(~year(fecha),ncol=2,scales = &amp;quot;free_x&amp;quot;) + scale_fill_manual(values=cols,guide=FALSE) + labs(title=&amp;quot;Numer of emergency admissions related with influeza and pneumonia. Under 18 years&amp;quot;,subtitle=&amp;quot;Comunidad de Madrid. Casesby 100.000 habitants&amp;quot;,caption=&amp;quot;Hospital morbidity survey.2010-2014&amp;quot;) + xlab(&amp;quot;Date&amp;quot;) + ylab(&amp;quot;&amp;quot;) + theme_bw()
+plot(g4)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-20-developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey_files/figure-html/explo4-1.png&#34; width=&#34;672&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;coming-next&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;Coming next&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Predictive anlysis&lt;/li&gt;
+&lt;li&gt;Big data&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+</description>
     </item>
     
     <item>
       <title>Text mining in R. A different approach to The Iliad</title>
-      <link>https://rafaelmenmell.netlify.com/2018/10/16/text-mining-in-r-a-different-approach-to-the-iliad/</link>
+      <link>/2018/10/16/text-mining-in-r-a-different-approach-to-the-iliad/</link>
       <pubDate>Tue, 16 Oct 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/10/16/text-mining-in-r-a-different-approach-to-the-iliad/</guid>
-      <description>.col1 { columns: 1 400px; /* number of columns and width in pixels*/ -webkit-columns: 1 400px; /* chrome, safari */ -moz-columns: 1 400px; /* firefox */ } .col2 { columns: 2 200px; /* number of columns and width in pixels*/ -webkit-columns: 2 200px; /* chrome, safari */ -moz-columns: 2 200px; /* firefox */ } .col3 { columns: 3 100px; -webkit-columns: 3 100px; -moz-columns: 3 100px; }  Introduction This project is an attempt to get familiarity with text mining in R and I haven’t found a better way to get it that mining The Iliad.</description>
+      <description>
+
+
+&lt;style&gt;
+  .col1 {
+    columns: 1 400px;         /* number of columns and width in pixels*/
+    -webkit-columns: 1 400px; /* chrome, safari */
+    -moz-columns: 1 400px;    /* firefox */
+  }
+  .col2 {
+    columns: 2 200px;         /* number of columns and width in pixels*/
+    -webkit-columns: 2 200px; /* chrome, safari */
+    -moz-columns: 2 200px;    /* firefox */
+  }
+  .col3 {
+    columns: 3 100px;
+    -webkit-columns: 3 100px;
+    -moz-columns: 3 100px;
+  }
+&lt;/style&gt;
+&lt;div id=&#34;introduction&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;This project is an attempt to get familiarity with text mining in R and I haven’t found a better way to get it that mining &lt;em&gt;The Iliad&lt;/em&gt;. This familiarity with text mining can be very useful because “much of the data proliferating today is unstructured and text-heavy.”&lt;a href=&#34;#fn1&#34; class=&#34;footnoteRef&#34; id=&#34;fnref1&#34;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;I’ve chosen the tidytext &lt;a href=&#34;#fn2&#34; class=&#34;footnoteRef&#34; id=&#34;fnref2&#34;&gt;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt; approach to text minig in order to test if it’s so effective as the tidy familiy.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;wordclouds&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;Wordclouds&lt;/h2&gt;
+&lt;p&gt;The first step in the process of mining &lt;em&gt;The Iliad&lt;/em&gt; is to know which words are more frequent in each book. &lt;em&gt;The Iliad&lt;/em&gt; is divided in 24 books. As a very basic learner of ancient greek I find interesting to do this using the classic greek version of the book.&lt;/p&gt;
+&lt;p&gt;So I used Perseus Digital Library &lt;a href=&#34;#fn3&#34; class=&#34;footnoteRef&#34; id=&#34;fnref3&#34;&gt;&lt;sup&gt;3&lt;/sup&gt;&lt;/a&gt; catalog to access the original classic greek text of &lt;em&gt;The Iliad&lt;/em&gt; in XML version. As every classic greek learner should know this is a declinated language so the same word can appear in very different forms. To achieve a realistic count of every single greek word I’ve used Greek Word Study Tool &lt;a href=&#34;#fn4&#34; class=&#34;footnoteRef&#34; id=&#34;fnref4&#34;&gt;&lt;sup&gt;4&lt;/sup&gt;&lt;/a&gt; to find the primal lemma of the declined word&lt;/p&gt;
+&lt;p&gt;Let’s see the code:&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(XML)
+library(wordcloud)
+library(RCurl)
+library(httr)
+library(RColorBrewer)
+
+GetXmlChapter &amp;lt;- function(chapter=1,tipo=&amp;quot;noun&amp;quot;){
+  if(file.exists(paste0(&amp;quot;chapter&amp;quot;,chapter,&amp;quot;.rds&amp;quot;))==FALSE){
+    path &amp;lt;- &amp;quot;http://www.perseus.tufts.edu/hopper/xmlchunk?doc=Perseus%3Atext%3A1999.01.0133%3Abook%3D&amp;quot;
+    path.c &amp;lt;- paste0(path,chapter)
+    chapter.xml &amp;lt;- xmlParse(path.c)
+    xml_data &amp;lt;- xmlToList(chapter.xml)
+    nlineas &amp;lt;- length(xml_data$text$body$div1)
+    lineas &amp;lt;- list()
+    l &amp;lt;- 1
+    for (i in 1:length(xml_data$text$body$div1)){
+      lineas[[l]] &amp;lt;- LeeChunck(xml_data$text$body$div1[i])
+      #print(LeeChunck(xml_data$text$body$div1[i]))
+      l &amp;lt;- l+1
+    }
+    lineas &amp;lt;- unlist(lineas)
+    #quitamos las comas
+    lineas &amp;lt;- lapply(lineas, function(x) gsub(&amp;quot;,&amp;quot;,&amp;quot;&amp;quot;,x))
+    lineas &amp;lt;- lapply(lineas, function(x) gsub(&amp;#39;/.&amp;#39;,&amp;quot;&amp;quot;,x))
+    lineas &amp;lt;- lapply(lineas, function(x) gsub(&amp;quot;;&amp;quot;,&amp;quot;&amp;quot;,x))
+    lineas &amp;lt;- lapply(lineas, function(x) gsub(&amp;quot;?&amp;quot;,&amp;quot;&amp;quot;,x))
+    lineas &amp;lt;- lapply(lineas, function(x) gsub(&amp;quot;:&amp;quot;,&amp;quot;&amp;quot;,x))
+    lineas &amp;lt;- lapply(lineas, function(x) strsplit(x,&amp;quot; &amp;quot;,))
+    palabras &amp;lt;- unlist(lineas)
+    #palabras &amp;lt;- sample(palabras,100)
+    def &amp;lt;-  vector(mode=&amp;quot;character&amp;quot;, length=length(palabras))
+    tipo &amp;lt;-  vector(mode=&amp;quot;character&amp;quot;, length=length(palabras))
+    
+    for (i in 1:length(palabras)){
+      print(sprintf(&amp;quot;%s:Traduciendo %s&amp;quot;,i,palabras[i]))
+      res &amp;lt;- try(GetWord(palabras[i]))
+      if(class(res) == &amp;quot;try-error&amp;quot;){
+        print(&amp;quot;sleep an try again&amp;quot;)
+        Sys.sleep(1)
+        res &amp;lt;- try(GetWord(palabras[i]))
+        if(class(res) == &amp;quot;try-error&amp;quot;){
+          print(&amp;quot;sleep an try again&amp;quot;)
+          Sys.sleep(1)
+          res &amp;lt;- try(GetWord(palabras[i]))
+        }
+      } 
+      def[i] &amp;lt;- res[[1]]
+      tipo[i] &amp;lt;- res[[2]]
+    }
+    res &amp;lt;- cbind(palabras,def,tipo)
+    saveRDS(res,file = paste0(&amp;quot;chapter&amp;quot;,chapter,&amp;quot;.rds&amp;quot;))
+  }
+  res &amp;lt;- readRDS(file = paste0(&amp;quot;chapter&amp;quot;,chapter,&amp;quot;.rds&amp;quot;) )
+  res &amp;lt;- res[res[,3]==tipo,]
+  summary &amp;lt;- as.data.frame(table(res[,2]))
+  png(paste0(&amp;quot;wordcloud_chapter&amp;quot;,chapter,&amp;quot;.png&amp;quot;), width=800, height=800, res=300)
+  wordcloud(summary$Var1,summary$Freq,colors=brewer.pal(8, &amp;quot;Dark2&amp;quot;),random.order=FALSE,rot.per=0.35,scale=c(1.5,0.3), use.r.layout=FALSE,  max.words=100)
+  dev.off()
+  #return(g)
+}
+
+GetWord &amp;lt;- function(word){
+  gc()
+  if (word==&amp;quot;&amp;quot;){
+    return(list(NA,NA))
+  }
+  word.html &amp;lt;- NULL
+  path &amp;lt;- sprintf(&amp;quot;http://www.perseus.tufts.edu/hopper/morph?lang=greek&amp;amp;lookup=%s&amp;quot;,word)
+  #word.html &amp;lt;- htmlTreeParse(path,encoding = &amp;quot;UTF-8&amp;quot;)
+  while (is.null(word.html)){
+    Sys.sleep(0.1)
+    tabs &amp;lt;- GET(path)
+    word.html &amp;lt;- htmlTreeParse(tabs,encoding = &amp;quot;UTF-8&amp;quot;)
+    if (!is.null(word.html$children)){
+      if (grepl(&amp;quot;503&amp;quot;,word.html$children)){
+          return(c(word,NA))
+        }
+      }
+    }
+  word.html &amp;lt;- xmlToList(word.html$children$html)
+  
+  if (word.html$body[2]$div[2]$div[2]$div[[1]]!=&amp;quot;Sorry, no information was found for&amp;quot;){
+    def &amp;lt;- word.html$body[2]$div[2]$div[2]$div[1]$div$div$div[3]
+    if (!is.null(def)){
+      tipo &amp;lt;- strsplit(word.html$body[2]$div[2]$div[2]$div$div$div[3]$table[2,1][[1]],&amp;quot; &amp;quot;)[[1]][1]
+    } else {
+      tipo &amp;lt;- NA
+    }
+    lemma &amp;lt;- word.html$body[2]$div[2]$div[2]$div[1]$div$div$div[1]
+    if (class(lemma)==&amp;quot;list&amp;quot;){
+      Encoding(lemma[[1]]) &amp;lt;- &amp;quot;UTF-8&amp;quot;
+      return(list(lemma[[1]],tipo))
+    } else {
+      if(is.null(def)){
+        return(list(word,NA))
+      } else {
+        Encoding(lemma) &amp;lt;- &amp;quot;UTF-8&amp;quot;
+        return(list(lemma,tipo))
+      }
+    } 
+  } else {
+    print(&amp;quot;Informacion no encontrada&amp;quot;)
+    return(list(NA,NA))
+  }
+  Encoding(lemma) &amp;lt;- &amp;quot;UTF-8&amp;quot;
+  return(list(lemma,tipo))
+}
+
+LeeChunck &amp;lt;- function(chunck){
+  lineas &amp;lt;- list()
+  l &amp;lt;- 1
+  #es una linea
+  if (names(chunck)==&amp;quot;l&amp;quot;){
+    #cin milestone
+    if (&amp;quot;milestone&amp;quot; %in% names(chunck$l)){
+      linea &amp;lt;- chunck$l$text
+      lineas[[l]] &amp;lt;- linea
+      l &amp;lt;- l+1
+    } else {
+      if (&amp;quot;text&amp;quot; %in% names(chunck$l)){
+        linea &amp;lt;- chunck$l$text
+        lineas[[l]] &amp;lt;- linea
+        l &amp;lt;- l+1
+      } else {
+        linea &amp;lt;- chunck$l
+        lineas[[l]] &amp;lt;- linea
+        l &amp;lt;- l+1
+      }
+    }
+  }
+  # es un parrafo
+  if (names(chunck)==&amp;quot;q&amp;quot;){
+    #todos los chunkitos
+    for (i in 1:length(chunck$q)){
+      l2 &amp;lt;- LeeChunck(chunck$q[i])
+      lineas[[l]] &amp;lt;- l2
+      l &amp;lt;- l+1
+    }
+    
+  }
+  
+  lineas &amp;lt;- unlist(lineas)
+  return(lineas)
+}&lt;/code&gt;&lt;/pre&gt;
+And let’s see some results
+&lt;div class=&#34;col2&#34;&gt;
+&lt;p&gt;&lt;img src=&#34;/img/wordcloud_chapter1.png&#34; alt=&#34;Wordcloud of The Iliad Book I&#34; /&gt; &lt;img src=&#34;/img/wordcloud_chapter2.png&#34; alt=&#34;Wordcloud of The Iliad Book II Catalogue of Ships&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;text-mining&#34; class=&#34;section level2&#34;&gt;
+&lt;h2&gt;Text Mining&lt;/h2&gt;
+&lt;p&gt;In this chapter I am replicating the analysys made in &lt;em&gt;Text Mining with R&lt;/em&gt; &lt;a href=&#34;#fn5&#34; class=&#34;footnoteRef&#34; id=&#34;fnref5&#34;&gt;&lt;sup&gt;5&lt;/sup&gt;&lt;/a&gt; and aplying them to &lt;em&gt;The Iliad&lt;/em&gt;.&lt;/p&gt;
+&lt;div id=&#34;getting-and-cleaning-the-text&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Getting and cleaning the text&lt;/h3&gt;
+&lt;p&gt;The dirty job, to this analysys the cleanest text of the book was needed. After a bit of web searching I’ve found in &lt;em&gt;Gutenberg Project&lt;/em&gt;&lt;a href=&#34;#fn6&#34; class=&#34;footnoteRef&#34; id=&#34;fnref6&#34;&gt;&lt;sup&gt;6&lt;/sup&gt;&lt;/a&gt; [this version] (&lt;a href=&#34;http://www.gutenberg.org/cache/epub/16452/pg16452.txt&#34; class=&#34;uri&#34;&gt;http://www.gutenberg.org/cache/epub/16452/pg16452.txt&lt;/a&gt;), although this is the cleanest text I’ve found it’s is not clean at all; so you need a lot of cleaning.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(dplyr)
+library(tidytext)
+library(tidyr)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## 
+## Attaching package: &amp;#39;tidyr&amp;#39;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## The following object is masked from &amp;#39;package:reshape2&amp;#39;:
+## 
+##     smiths&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(ggplot2)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## 
+## Attaching package: &amp;#39;ggplot2&amp;#39;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## The following object is masked from &amp;#39;package:crayon&amp;#39;:
+## 
+##     %+%&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  con &amp;lt;- file(&amp;quot;http://www.gutenberg.org/cache/epub/16452/pg16452.txt&amp;quot;,open=&amp;quot;r&amp;quot;)
+  lines &amp;lt;- readLines(con)
+  lines.split &amp;lt;- vector(&amp;quot;integer&amp;quot;,24)
+  for (book in 1:24){
+    search &amp;lt;- sprintf(&amp;quot;BOOK %s\\.&amp;quot;,as.roman(book))
+    lines.split[book] &amp;lt;- last(which(grepl(search,lines)==TRUE)) #porque la primera vez que aparece es el índice
+  }
+  final &amp;lt;- &amp;#39;                  \\*       \\*       \\*       \\*       \\*&amp;#39;
+  libros &amp;lt;- vector(&amp;quot;list&amp;quot;,24)
+  for (l in 1:24){
+    if (l!=24){
+      libros[[l]] &amp;lt;- lines[(lines.split[l]+1):(lines.split[(l+1)]-1)]
+    } else {
+      libros[[l]] &amp;lt;- lines[(lines.split[l]+1):length(lines)]
+    }
+    #hay final de linea
+    if (TRUE %in% grepl(final,libros[[l]])){
+      libros[[l]] &amp;lt;- libros[[l]][1:(which(grepl(final,libros[[l]])==TRUE)-1)]
+    }
+    #si hay ARGUMENT
+    if (TRUE %in% grepl(&amp;quot;ARGUMENT&amp;quot;,libros[[l]])){
+      libros[[l]] &amp;lt;- libros[[l]][1:(which(grepl(&amp;quot;ARGUMENT&amp;quot;,libros[[l]])==TRUE)-1)]
+    }
+  }&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Warning in 1:(which(grepl(&amp;quot;ARGUMENT&amp;quot;, libros[[l]]) == TRUE) - 1): numerical
+## expression has 8 elements: only the first used&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Warning in 1:(which(grepl(&amp;quot;ARGUMENT&amp;quot;, libros[[l]]) == TRUE) - 1): numerical
+## expression has 2 elements: only the first used&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  #Vamos a limpiar todos los libros
+  #Borro líneas vacías
+  libros &amp;lt;- lapply(libros,FUN = function(x) x[x!=&amp;quot;&amp;quot;])
+  #Borro números
+  libros &amp;lt;- lapply(libros,FUN = function(x) gsub(&amp;#39;[0-9]+&amp;#39;, &amp;#39;&amp;#39;, x))
+  #Borro lineas sueltas
+  libros &amp;lt;- lapply(libros,FUN = function(x) x[!(grepl(&amp;quot;THE ILIAD.&amp;quot;,x))])
+  libros &amp;lt;- lapply(libros,FUN = function(x) x[!(grepl(&amp;quot;BOOK&amp;quot;,x))])
+  #Borro los corchetes de las notas
+  libros &amp;lt;- lapply(libros,FUN = function(x) gsub(&amp;#39;\\[|\\]+&amp;#39;, &amp;#39;&amp;#39;, x))
+  #Borro cuando hay más de un espacio
+  libros &amp;lt;- lapply(libros,FUN = function(x) gsub(&amp;quot;\\s\\s+&amp;quot;,&amp;quot;&amp;quot;,x))&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;After this hard cleaning job I get a list (one element for book) of vectors (one element for line).&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;head(libros[[1]])&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## [1] &amp;quot;Achilles sing, O Goddess! Peleus&amp;#39; son;&amp;quot;     
+## [2] &amp;quot;His wrath pernicious, who ten thousand woes&amp;quot;
+## [3] &amp;quot;Caused to Achaia&amp;#39;s host, sent many a soul&amp;quot;  
+## [4] &amp;quot;Illustrious into Ades premature,&amp;quot;           
+## [5] &amp;quot;And Heroes gave (so stood the will of Jove)&amp;quot;
+## [6] &amp;quot;To dogs and to all ravening fowls a prey,&amp;quot;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;em&gt;The tidy text format&lt;/em&gt;: tidy text format breaks the text in individual tokens and transforms it to a tidy data structure using &lt;em&gt;unnest_tokens()&lt;/em&gt;.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(tidytext)
+library(formattable)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## 
+## Attaching package: &amp;#39;formattable&amp;#39;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## The following object is masked from &amp;#39;package:crayon&amp;#39;:
+## 
+##     style&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;libros.df &amp;lt;- lapply(libros,FUN=function(x) data.frame(line=1:length(x),text=x))
+libros.df &amp;lt;- lapply(libros.df,FUN=function(x) x %&amp;gt;% unnest_tokens(word,text))
+  for (i in 1:length(libros.df)){
+    libros.df[[i]]$book &amp;lt;- i
+  }
+libros.df &amp;lt;- bind_rows(libros.df)
+head(libros.df)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;##   line     word book
+## 1    1 achilles    1
+## 2    1     sing    1
+## 3    1        o    1
+## 4    1  goddess    1
+## 5    1   peleus    1
+## 6    1      son    1&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div id=&#34;word-frequencies&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Word frequencies&lt;/h3&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;freq &amp;lt;- libros.df %&amp;gt;% anti_join(stop_words) %&amp;gt;% group_by(book) %&amp;gt;% count(word,sort=TRUE) %&amp;gt;% group_by(book)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Joining, by = &amp;quot;word&amp;quot;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;freq &amp;lt;- split(freq,freq$book) 
+freq10 &amp;lt;- lapply(freq, FUN=function(x) x[1:10,])&lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&#34;col3&#34;&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;formattable(freq10[[1]])&lt;/code&gt;&lt;/pre&gt;
+&lt;table class=&#34;table table-condensed&#34;&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+book
+&lt;/th&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+word
+&lt;/th&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+n
+&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+thou
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+57
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+thy
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+55
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+thee
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+34
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+son
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+25
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+jove
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+24
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+achilles
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+22
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+host
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+20
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+gods
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+16
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+agamemnon
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+15
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+1
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+apollo
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+15
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;formattable(freq10[[2]])&lt;/code&gt;&lt;/pre&gt;
+&lt;table class=&#34;table table-condensed&#34;&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+book
+&lt;/th&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+word
+&lt;/th&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+n
+&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+ships
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+36
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+son
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+32
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+jove
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+29
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+thou
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+24
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+led
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+22
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+chief
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+20
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+troy
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+20
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+host
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+19
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+agamemnon
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+18
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+2
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+king
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+16
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;formattable(freq10[[3]])&lt;/code&gt;&lt;/pre&gt;
+&lt;table class=&#34;table table-condensed&#34;&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+book
+&lt;/th&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+word
+&lt;/th&gt;
+&lt;th style=&#34;text-align:right;&#34;&gt;
+n
+&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+thou
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+26
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+thy
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+19
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+paris
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+16
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+helen
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+15
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+thee
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+15
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+ye
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+14
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+troy
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+13
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+menelaus
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+12
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+menelaüs
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+12
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+3
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+fair
+&lt;/td&gt;
+&lt;td style=&#34;text-align:right;&#34;&gt;
+11
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&#34;sentiment-analysis&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Sentiment analysis&lt;/h3&gt;
+&lt;p&gt;As it is said in &lt;em&gt;Text Mining with R&lt;/em&gt; “One way to analyze the sentiment of a text is to consider the text as a combination of its individual words and the sentiment content of the whole text as the sum of the sentiment content of the individual words.”, probably a wrong method anyway.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;sentiments &amp;lt;- libros.df %&amp;gt;% inner_join(get_sentiments(&amp;quot;bing&amp;quot;)) %&amp;gt;% count(book,index = line %/% 25, sentiment) %&amp;gt;% spread(sentiment, n, fill = 0) %&amp;gt;%  mutate(sentiment = positive - negative)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Joining, by = &amp;quot;word&amp;quot;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;ggplot(sentiments, aes(index, sentiment, fill = as.factor(book))) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~book, ncol = 6, scales = &amp;quot;free_x&amp;quot;) + labs(title=&amp;quot;Sentiment analysis by words. The Iliad&amp;quot;) + xlab(&amp;quot;&amp;quot;)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-16-text-mining-in-r-a-different-approach-to-the-iliad_files/figure-html/code9-1.png&#34; width=&#34;1152&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;As can be seen the overall sentiment of the book is quite negative, for example book XXI is significantly negative. The summary of the chapter in &lt;a href=&#34;https://en.wikipedia.org/wiki/Iliad#Synopsis&#34;&gt;Wikipedia&lt;/a&gt; is “Driving the Trojans before him, Achilles cuts off half their number in the river Skamandros and proceeds to slaughter them, filling the river with the dead. The river, angry at the killing, confronts Achilles but is beaten back by Hephaestus’ firestorm. The gods fight among themselves. The great gates of the city are opened to receive the fleeing Trojans, and Apollo leads Achilles away from the city by pretending to be a Trojan.”, can it bee positive?&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;comparing-the-three-sentiment-dictionaries&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Comparing the three sentiment dictionaries&lt;/h3&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;libros.df$line2 &amp;lt;- 1:nrow(libros.df)
+  afinn &amp;lt;- libros.df %&amp;gt;% 
+    inner_join(get_sentiments(&amp;quot;afinn&amp;quot;)) %&amp;gt;% 
+    group_by(index = line2 %/% 250) %&amp;gt;% 
+    summarise(sentiment = sum(score)) %&amp;gt;% 
+    mutate(method = &amp;quot;AFINN&amp;quot;)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Joining, by = &amp;quot;word&amp;quot;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  bing_and_nrc &amp;lt;- bind_rows(libros.df %&amp;gt;% 
+                              inner_join(get_sentiments(&amp;quot;bing&amp;quot;)) %&amp;gt;%
+                              mutate(method = &amp;quot;Bing et al.&amp;quot;),
+                            libros.df %&amp;gt;% 
+                              inner_join(get_sentiments(&amp;quot;nrc&amp;quot;) %&amp;gt;% 
+                                           dplyr::filter(sentiment %in% c(&amp;quot;positive&amp;quot;, 
+                                                                   &amp;quot;negative&amp;quot;))) %&amp;gt;%
+                              mutate(method = &amp;quot;NRC&amp;quot;)) %&amp;gt;%
+    count(method, index = line2 %/% 250, sentiment) %&amp;gt;%
+    spread(sentiment, n, fill = 0) %&amp;gt;%
+    mutate(sentiment = positive - negative)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Joining, by = &amp;quot;word&amp;quot;
+## Joining, by = &amp;quot;word&amp;quot;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  bind_rows(afinn, 
+            bing_and_nrc) %&amp;gt;%
+    ggplot(aes(index, sentiment, fill = method)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~method, ncol = 1, scales = &amp;quot;free_y&amp;quot;)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-16-text-mining-in-r-a-different-approach-to-the-iliad_files/figure-html/code10-1.png&#34; width=&#34;1152&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;The three sentiments sources are coherent.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;most-common-positive-and-negative-words&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Most common positive and negative words&lt;/h3&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;bing_word_counts &amp;lt;- libros.df %&amp;gt;%
+    inner_join(get_sentiments(&amp;quot;bing&amp;quot;)) %&amp;gt;%
+    count(word, sentiment, sort = TRUE) %&amp;gt;%
+    ungroup()&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Joining, by = &amp;quot;word&amp;quot;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  bing_word_counts %&amp;gt;%
+    group_by(sentiment) %&amp;gt;%
+    top_n(10) %&amp;gt;%
+    ungroup() %&amp;gt;%
+    mutate(word = reorder(word, n)) %&amp;gt;%
+    ggplot(aes(word, n, fill = sentiment)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~sentiment, scales = &amp;quot;free_y&amp;quot;) +
+    labs(y = &amp;quot;Contribution to sentiment&amp;quot;,
+         x = NULL) +
+    coord_flip()&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Selecting by n&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-16-text-mining-in-r-a-different-approach-to-the-iliad_files/figure-html/code11-1.png&#34; width=&#34;1152&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;The list of positive words is quite interesting with several words in the circle of &lt;a href=&#34;https://en.wikipedia.org/wiki/Arete&#34;&gt;ἀρετή&lt;/a&gt;: brave, noble, brigth, valiant, glorious.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;term-frequency-zipfs-law-and-bind_tf_idf-function&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Term frequency, Zipf’s law and bind_tf_idf function&lt;/h3&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;book_words &amp;lt;- libros.df %&amp;gt;%
+    count(book, word, sort = TRUE) %&amp;gt;%
+    ungroup()
+  
+  total_words &amp;lt;- book_words %&amp;gt;% 
+    group_by(book) %&amp;gt;% 
+    summarize(total = sum(n))
+  
+  book_words &amp;lt;- left_join(book_words, total_words)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Joining, by = &amp;quot;book&amp;quot;&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  ggplot(book_words, aes(n/total, fill = as.factor(book))) +
+    geom_histogram(show.legend = FALSE) +
+    xlim(NA, 0.004) +
+    facet_wrap(~book, ncol = 6, scales = &amp;quot;free_y&amp;quot;)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Warning: Removed 769 rows containing non-finite values (stat_bin).&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Warning: Removed 24 rows containing missing values (geom_bar).&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-16-text-mining-in-r-a-different-approach-to-the-iliad_files/figure-html/code12-1.png&#34; width=&#34;1152&#34; /&gt;&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  freq_by_rank &amp;lt;- book_words %&amp;gt;% 
+    group_by(book) %&amp;gt;% 
+    mutate(rank = row_number(), 
+           `term frequency` = n/total)
+  
+  freq_by_rank %&amp;gt;% 
+    ggplot(aes(rank, `term frequency`, color = as.factor(book))) + 
+    geom_abline(intercept = -0.62, slope = -1.1, color = &amp;quot;gray50&amp;quot;, linetype = 2) +
+    geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+    scale_x_log10() +
+    scale_y_log10()&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-16-text-mining-in-r-a-different-approach-to-the-iliad_files/figure-html/code12-2.png&#34; width=&#34;1152&#34; /&gt;&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  rank_subset &amp;lt;- freq_by_rank %&amp;gt;% 
+    dplyr::filter(rank &amp;lt; 500,
+           rank &amp;gt; 10)
+  
+  lm(log10(`term frequency`) ~ log10(rank), data = rank_subset)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## 
+## Call:
+## lm(formula = log10(`term frequency`) ~ log10(rank), data = rank_subset)
+## 
+## Coefficients:
+## (Intercept)  log10(rank)  
+##     -1.0909      -0.8772&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;    book_words &amp;lt;- book_words %&amp;gt;%
+    bind_tf_idf(word, book, n)
+  book_words&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 41,939 x 7
+##     book  word     n total         tf   idf tf_idf
+##    &amp;lt;int&amp;gt; &amp;lt;chr&amp;gt; &amp;lt;int&amp;gt; &amp;lt;int&amp;gt;      &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;  &amp;lt;dbl&amp;gt;
+##  1    14   the   549  8234 0.06667476     0      0
+##  2    23   the   547  8223 0.06652073     0      0
+##  3    11   the   535  7757 0.06896996     0      0
+##  4     2   the   494  7779 0.06350431     0      0
+##  5    13   the   475  7420 0.06401617     0      0
+##  6    16   the   462  7778 0.05939830     0      0
+##  7     5   the   458  7956 0.05756662     0      0
+##  8    17   the   424  6738 0.06292668     0      0
+##  9    15   the   420  6773 0.06201093     0      0
+## 10    24   the   399  7621 0.05235533     0      0
+## # ... with 41,929 more rows&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  book_words %&amp;gt;%
+    select(-total) %&amp;gt;%
+    arrange(desc(tf_idf))&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 41,939 x 6
+##     book        word     n          tf       idf      tf_idf
+##    &amp;lt;int&amp;gt;       &amp;lt;chr&amp;gt; &amp;lt;int&amp;gt;       &amp;lt;dbl&amp;gt;     &amp;lt;dbl&amp;gt;       &amp;lt;dbl&amp;gt;
+##  1    10       dolon    16 0.003025147 3.1780538 0.009614079
+##  2     3    menelaüs    12 0.002986560 3.1780538 0.009491450
+##  3     6 bellerophon     8 0.001668405 3.1780538 0.005302280
+##  4     3   alexander     8 0.001991040 2.0794415 0.004140252
+##  5    13   deiphobus    14 0.001886792 2.0794415 0.003923475
+##  6     7       idæus     9 0.002116153 1.7917595 0.003791638
+##  7    24      litter     9 0.001180947 3.1780538 0.003753114
+##  8     2       forty     9 0.001156961 3.1780538 0.003676884
+##  9    16   patroclus    52 0.006685523 0.5389965 0.003603474
+## 10     1    chrysëis     6 0.001049685 3.1780538 0.003335956
+## # ... with 41,929 more rows&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  book_words %&amp;gt;%
+    arrange(desc(tf_idf)) %&amp;gt;%
+    dplyr::filter(book&amp;lt;=4) %&amp;gt;% 
+    mutate(word = factor(word, levels = rev(unique(word)))) %&amp;gt;% 
+    group_by(book) %&amp;gt;% 
+    top_n(15) %&amp;gt;% 
+    ungroup %&amp;gt;%
+    ggplot(aes(word, tf_idf, fill = as.factor(book))) +
+    geom_col(show.legend = FALSE) +
+    labs(x = NULL, y = &amp;quot;tf-idf&amp;quot;,title=&amp;quot;tf-idf for book I to IV&amp;quot;) +
+    facet_wrap(~book, ncol = 2, scales = &amp;quot;free&amp;quot;) +
+    coord_flip()&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Selecting by tf_idf&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-16-text-mining-in-r-a-different-approach-to-the-iliad_files/figure-html/code12-3.png&#34; width=&#34;1152&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div id=&#34;relations-between-words&#34; class=&#34;section level3&#34;&gt;
+&lt;h3&gt;Relations between words&lt;/h3&gt;
+&lt;div id=&#34;bigrams&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Bigrams&lt;/h4&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  libros.df_2 &amp;lt;- lapply(libros,FUN=function(x) data.frame(line=1:length(x),text=x))
+  libros.df_2 &amp;lt;- lapply(libros.df_2,FUN=function(x) x %&amp;gt;% unnest_tokens(bigram,text,token=&amp;quot;ngrams&amp;quot;,n=2))
+  for (i in 1:length(libros.df_2)){
+    libros.df_2[[i]]$book &amp;lt;- i
+  }
+  iliad_bigrams &amp;lt;- bind_rows(libros.df_2)
+  
+  iliad_bigrams %&amp;gt;%
+    count(bigram, sort = TRUE)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 64,434 x 2
+##      bigram     n
+##       &amp;lt;chr&amp;gt; &amp;lt;int&amp;gt;
+##  1   of the   574
+##  2   to the   459
+##  3   on the   353
+##  4  and the   329
+##  5   in the   319
+##  6 from the   305
+##  7   of all   212
+##  8  all the   206
+##  9   son of   205
+## 10   to his   205
+## # ... with 64,424 more rows&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  bigrams_separated &amp;lt;- iliad_bigrams %&amp;gt;%
+    separate(bigram, c(&amp;quot;word1&amp;quot;, &amp;quot;word2&amp;quot;), sep = &amp;quot; &amp;quot;)
+  
+  bigrams_filtered &amp;lt;- bigrams_separated %&amp;gt;%
+    dplyr::filter(!word1 %in% stop_words$word) %&amp;gt;%
+    dplyr::filter(!word2 %in% stop_words$word)
+  
+  head(bigrams_filtered,10)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;##    line    word1      word2 book
+## 1     1 achilles       sing    1
+## 2     1  goddess     peleus    1
+## 3     1   peleus        son    1
+## 4     2    wrath pernicious    1
+## 5     2      ten   thousand    1
+## 6     2 thousand       woes    1
+## 7     3 achaia&amp;#39;s       host    1
+## 8     4     ades  premature    1
+## 9     6 ravening      fowls    1
+## 10    7   fierce    dispute    1&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div id=&#34;trigrams&#34; class=&#34;section level4&#34;&gt;
+&lt;h4&gt;Trigrams&lt;/h4&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  libros.df_3 &amp;lt;- lapply(libros,FUN=function(x) data.frame(line=1:length(x),text=x))
+  libros.df_3 &amp;lt;- lapply(libros.df_3,FUN=function(x) x %&amp;gt;% unnest_tokens(trigram,text,token=&amp;quot;ngrams&amp;quot;,n=3))
+  for (i in 1:length(libros.df_3)){
+    libros.df_3[[i]]$book &amp;lt;- i
+  }
+  iliad_trigrams &amp;lt;- bind_rows(libros.df_3)
+  iliad_trigrams %&amp;gt;% separate(trigram, c(&amp;quot;word1&amp;quot;, &amp;quot;word2&amp;quot;, &amp;quot;word3&amp;quot;), sep = &amp;quot; &amp;quot;) %&amp;gt;%
+    dplyr::filter(!word1 %in% stop_words$word,
+           !word2 %in% stop_words$word,
+           !word3 %in% stop_words$word) %&amp;gt;%
+    count(word1, word2, word3, sort = TRUE)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 5,727 x 4
+##      word1     word2  word3     n
+##      &amp;lt;chr&amp;gt;     &amp;lt;chr&amp;gt;  &amp;lt;chr&amp;gt; &amp;lt;int&amp;gt;
+##  1 laertes     noble    son     7
+##  2    wind     swept  ilium     7
+##  3    blue      eyed pallas     6
+##  4    gore   tainted   mars     6
+##  5    jove      ægis  arm&amp;#39;d     6
+##  6    &amp;lt;NA&amp;gt;      &amp;lt;NA&amp;gt;   &amp;lt;NA&amp;gt;     6
+##  7   close  fighting   sons     5
+##  8  atreus    mighty    son     4
+##  9   cloud assembler    god     4
+## 10   cloud assembler   jove     4
+## # ... with 5,717 more rows&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  head(iliad_trigrams,10)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;##    line              trigram book
+## 1     1      achilles sing o    1
+## 2     1       sing o goddess    1
+## 3     1     o goddess peleus    1
+## 4     1   goddess peleus son    1
+## 5     2 his wrath pernicious    1
+## 6     2 wrath pernicious who    1
+## 7     2   pernicious who ten    1
+## 8     2     who ten thousand    1
+## 9     2    ten thousand woes    1
+## 10    3   caused to achaia&amp;#39;s    1&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Everyone who has read &lt;em&gt;The Iliad&lt;/em&gt; knows about the repetitions in the text (supposedly due to oral transmision), we can show this here:&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt; bigrams_filtered %&amp;gt;%
+    dplyr::filter(word2 == &amp;quot;god&amp;quot;) %&amp;gt;%
+    count(word1, sort = TRUE)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 14 x 2
+##            word1     n
+##            &amp;lt;chr&amp;gt; &amp;lt;int&amp;gt;
+##  1        archer     5
+##  2     assembler     4
+##  3       warrior     3
+##  4         angry     1
+##  5        bender     1
+##  6        coming     1
+##  7      guardian     1
+##  8      immortal     1
+##  9 indefatigable     1
+## 10          jove     1
+## 11        mighty     1
+## 12      stirring     1
+## 13           thy     1
+## 14       tossing     1&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  bigrams_filtered %&amp;gt;%
+    dplyr::filter(word2 == &amp;quot;achilles&amp;quot;) %&amp;gt;%
+    count(word1, sort = TRUE)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 94 x 2
+##        word1     n
+##        &amp;lt;chr&amp;gt; &amp;lt;int&amp;gt;
+##  1     swift    11
+##  2     brave     7
+##  3   godlike     5
+##  4  renown&amp;#39;d     5
+##  5    divine     4
+##  6 myrmidons     4
+##  7     noble     4
+##  8     spake     3
+##  9      thou     3
+## 10  upsprang     3
+## # ... with 84 more rows&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;  bigram_tf_idf &amp;lt;- iliad_bigrams %&amp;gt;%
+    count(book, bigram) %&amp;gt;%
+    bind_tf_idf(bigram, book, n) %&amp;gt;%
+    arrange(desc(tf_idf))
+  
+  bigram_tf_idf %&amp;gt;% arrange(desc(tf_idf)) %&amp;gt;%
+    dplyr::filter(book&amp;lt;=4) %&amp;gt;% 
+    mutate(bigram = factor(bigram, levels = rev(unique(bigram)))) %&amp;gt;% 
+    group_by(book) %&amp;gt;% 
+    top_n(15) %&amp;gt;% 
+    ungroup %&amp;gt;%
+    ggplot(aes(bigram, tf_idf, fill = as.factor(book))) +
+    geom_col(show.legend = FALSE) +
+    labs(x = NULL, y = &amp;quot;tf-idf&amp;quot;) +
+    facet_wrap(~book, ncol = 4, scales = &amp;quot;free&amp;quot;) +
+    coord_flip()&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## Selecting by tf_idf&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-16-text-mining-in-r-a-different-approach-to-the-iliad_files/figure-html/code15-1.png&#34; width=&#34;1152&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id=&#34;fn1&#34;&gt;&lt;p&gt;Text Mining with R &lt;a href=&#34;https://www.tidytextmining.com/index.html&#34; class=&#34;uri&#34;&gt;https://www.tidytextmining.com/index.html&lt;/a&gt;&lt;a href=&#34;#fnref1&#34;&gt;↩&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li id=&#34;fn2&#34;&gt;&lt;p&gt;Tidytext &lt;a href=&#34;https://github.com/juliasilge/tidytext&#34; class=&#34;uri&#34;&gt;https://github.com/juliasilge/tidytext&lt;/a&gt;&lt;a href=&#34;#fnref2&#34;&gt;↩&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li id=&#34;fn3&#34;&gt;&lt;p&gt;Perseus Digital Library &lt;a href=&#34;http://www.perseus.tufts.edu/hopper/&#34; class=&#34;uri&#34;&gt;http://www.perseus.tufts.edu/hopper/&lt;/a&gt;&lt;a href=&#34;#fnref3&#34;&gt;↩&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li id=&#34;fn4&#34;&gt;&lt;p&gt;Perseus Digital Library Greek Word Study Tool &lt;a href=&#34;http://www.perseus.tufts.edu/hopper/morph?lang=greek&amp;amp;lookup=%E1%BC%A1&#34;&gt;http://www.perseus.tufts.edu/hopper/morph?lang=greek&amp;amp;lookup=%E1%BC%A1&lt;/a&gt;&lt;a href=&#34;#fnref4&#34;&gt;↩&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li id=&#34;fn5&#34;&gt;&lt;p&gt;Project Gutenberg &lt;a href=&#34;http://www.gutenberg.org/&#34; class=&#34;uri&#34;&gt;http://www.gutenberg.org/&lt;/a&gt;&lt;a href=&#34;#fnref5&#34;&gt;↩&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li id=&#34;fn6&#34;&gt;&lt;p&gt;Project Gutenberg &lt;a href=&#34;http://www.gutenberg.org/&#34; class=&#34;uri&#34;&gt;http://www.gutenberg.org/&lt;/a&gt;&lt;a href=&#34;#fnref6&#34;&gt;↩&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+</description>
     </item>
     
     <item>
       <title>One tweet leads to some R work about births</title>
-      <link>https://rafaelmenmell.netlify.com/2018/10/05/one-tweet-leads-to-some-r-work-about-births/</link>
+      <link>/2018/10/05/one-tweet-leads-to-some-r-work-about-births/</link>
       <pubDate>Fri, 05 Oct 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/10/05/one-tweet-leads-to-some-r-work-about-births/</guid>
-      <description>This new post was born because of my curiosity about this tweet:
-Italy 1960-2014: Big drop in annual number of births, big increase in ages of mothers. #Italy #fertility pic.twitter.com/QGT0AnA3IU — Carl Schmertmann (@CSchmert) 7 de febrero de 2018   Sometimes you just feel the urge to recreate some data analysis that you find interesting. Im my case I used data from Spain that I found in INE (National Institute of Statistics), with a little effort I found out the ftp where the data are hidden.</description>
+      <description>
+
+
+&lt;p&gt;This new post was born because of my curiosity about this tweet:&lt;/p&gt;
+&lt;blockquote class=&#34;twitter-tweet&#34; data-lang=&#34;es&#34;&gt;
+&lt;p lang=&#34;en&#34; dir=&#34;ltr&#34;&gt;
+Italy 1960-2014: Big drop in annual number of births, big increase in ages of mothers. &lt;a href=&#34;https://twitter.com/hashtag/Italy?src=hash&amp;amp;ref_src=twsrc%5Etfw&#34;&gt;#Italy&lt;/a&gt; &lt;a href=&#34;https://twitter.com/hashtag/fertility?src=hash&amp;amp;ref_src=twsrc%5Etfw&#34;&gt;#fertility&lt;/a&gt; &lt;a href=&#34;https://t.co/QGT0AnA3IU&#34;&gt;pic.twitter.com/QGT0AnA3IU&lt;/a&gt;
+&lt;/p&gt;
+— Carl Schmertmann (&lt;span class=&#34;citation&#34;&gt;@CSchmert&lt;/span&gt;) &lt;a href=&#34;https://twitter.com/CSchmert/status/961277371075694592?ref_src=twsrc%5Etfw&#34;&gt;7 de febrero de 2018&lt;/a&gt;
+&lt;/blockquote&gt;
+&lt;script async src=&#34;https://platform.twitter.com/widgets.js&#34; charset=&#34;utf-8&#34;&gt;&lt;/script&gt;
+&lt;p&gt;Sometimes you just feel the urge to recreate some data analysis that you find interesting. Im my case I used data from Spain that I found in &lt;a href=&#34;https://www.ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&amp;amp;cid=1254736177007&amp;amp;menu=resultados&amp;amp;secc=1254736195443&amp;amp;idp=1254735573002&#34;&gt;INE (National Institute of Statistics)&lt;/a&gt;, with a little effort I found out the ftp where the data are hidden.&lt;/p&gt;
+&lt;p&gt;And here you have some code to play with this beautiful data set. It’s a little tricky because its codification has changed several times in the last years.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;#nacimientos
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(readr))
+
+DescargaNacimientos &amp;lt;- function(year){
+  if (year %in% 2007:2010){
+    url &amp;lt;- sprintf(&amp;quot;ftp://www.ine.es/temas/mnp_nacim/datos%%20nacimientos%s.zip&amp;quot;,substr(year,3,4))
+  }
+  if (year %in% 2011:2015){
+    url &amp;lt;- sprintf(&amp;quot;ftp://www.ine.es/temas/mnp_nacim/datos_nacimientos%s.zip&amp;quot;,substr(year,3,4))
+  }
+  if (year %in% 1996:2006){
+    url &amp;lt;- sprintf(&amp;quot;ftp://www.ine.es/temas/mnp_nacim/datos%%20nacimientos%%20%s.zip&amp;quot;,substr(year,3,4))
+  }
+  if (year %in% 1980:1995){
+    url &amp;lt;- sprintf(&amp;quot;ftp://www.ine.es/temas/mnp_nacim/datos%%20nacimientos%%20%s.zip&amp;quot;,substr(year,3,4))
+  }
+  if (year %in% 1975:1979){
+    url &amp;lt;- sprintf(&amp;quot;ftp://www.ine.es/temas/mnp_nacim/datos%%20nacimientos%%20%s.zip&amp;quot;,substr(year,3,4))
+  }
+  download.file(url = url,destfile = &amp;quot;nacimientos.zip&amp;quot;,quiet = TRUE)
+  filename &amp;lt;- unzip(zipfile = &amp;quot;nacimientos.zip&amp;quot;,list = TRUE)$Name
+  unzip(&amp;quot;nacimientos.zip&amp;quot;)
+  unlink(&amp;quot;nacimientos.zip&amp;quot;)
+  nacimientos &amp;lt;- TraduceNacimientos(filename,year)
+  unlink(filename)
+  return(nacimientos)
+}
+
+TraduceNacimientos &amp;lt;- function(file,year){
+  if (year %in% 1975:1979){
+    columnas.name &amp;lt;- c(&amp;quot;MUNRC&amp;quot;,&amp;quot;PROVRC&amp;quot;,&amp;quot;MESNA&amp;quot;,&amp;quot;AÑONA&amp;quot;,&amp;quot;SEXO&amp;quot;,&amp;quot;LEGI&amp;quot;,&amp;quot;LUGAR&amp;quot;,&amp;quot;PS&amp;quot;,&amp;quot;MULTI&amp;quot;,&amp;quot;NATURI&amp;quot;,&amp;quot;NOD&amp;quot;,&amp;quot;MESNM&amp;quot;,&amp;quot;AÑONM&amp;quot;,&amp;quot;PROFM&amp;quot;,&amp;quot;N1&amp;quot;,&amp;quot;MESMM&amp;quot;,&amp;quot;AÑOMM&amp;quot;,&amp;quot;NUMHIJOS&amp;quot;,&amp;quot;MESNACUH&amp;quot;,&amp;quot;AÑONACUH&amp;quot;,&amp;quot;MUNIRES&amp;quot;,&amp;quot;PROVRES&amp;quot;,&amp;quot;MESNP&amp;quot;,&amp;quot;AÑONP&amp;quot;,&amp;quot;PROFP&amp;quot;,&amp;quot;ANCUM&amp;quot;,&amp;quot;ANCUP&amp;quot;,&amp;quot;INTERG&amp;quot;)
+    columnas.ancho &amp;lt;- c(3,2,2,2,1,1,1,1,1,1,1,2,2,2,1,2,2,2,2,2,3,2,2,2,2,2,2,2)
+  }
+  if (year %in% 1980:1995){
+    columnas.name &amp;lt;- c(&amp;quot;MUNRC&amp;quot;,&amp;quot;PROVRC&amp;quot;,&amp;quot;LUGAR&amp;quot;,&amp;quot;ASANIT&amp;quot;,&amp;quot;SEMGEST&amp;quot;,&amp;quot;MESPA&amp;quot;,&amp;quot;AÑOPA&amp;quot;,&amp;quot;MULTI&amp;quot;,&amp;quot;NATURI&amp;quot;,&amp;quot;NORMAL&amp;quot;,&amp;quot;MESNM&amp;quot;,&amp;quot;AÑONM&amp;quot;,&amp;quot;PROFM&amp;quot;,&amp;quot;MUNIRES&amp;quot;,&amp;quot;PROVRES&amp;quot;,&amp;quot;NUMHIV&amp;quot;,&amp;quot;MESPANT&amp;quot;,&amp;quot;AÑOPANT&amp;quot;,&amp;quot;CASADA&amp;quot;,&amp;quot;CASAPV&amp;quot;,&amp;quot;MESMAC&amp;quot;,&amp;quot;AÑOMAC&amp;quot;,&amp;quot;MESNP&amp;quot;,&amp;quot;AÑONP&amp;quot;,&amp;quot;PROFP&amp;quot;)
+    columnas.ancho &amp;lt;- c(3,2,1,1,2,2,2,1,1,1,2,2,2,3,2,2,2,2,1,1,2,2,2,2,2)
+  }
+  if (year %in% 1996:2006){
+    columnas.name &amp;lt;- c(&amp;quot;CMUNI&amp;quot;,&amp;quot;CPROI&amp;quot;,&amp;quot;MESPAR&amp;quot;,&amp;quot;ANOPAR&amp;quot;,&amp;quot;SEMGES&amp;quot;,&amp;quot;LUGNAC&amp;quot;,&amp;quot;PARASIS&amp;quot;,&amp;quot;MULTI&amp;quot;,&amp;quot;NATURI&amp;quot;,&amp;quot;NORMAL&amp;quot;,&amp;quot;MESNM&amp;quot;,&amp;quot;AÑONM&amp;quot;,&amp;quot;PROFM&amp;quot;,&amp;quot;MUNM&amp;quot;,&amp;quot;PROVM&amp;quot;,&amp;quot;NUMHV&amp;quot;,&amp;quot;MESHAN&amp;quot;,&amp;quot;AÑOHAN&amp;quot;,&amp;quot;CAS&amp;quot;,&amp;quot;CASP&amp;quot;,&amp;quot;MESMAT&amp;quot;,&amp;quot;AÑOMAT&amp;quot;,&amp;quot;MESNP&amp;quot;,&amp;quot;AÑONP&amp;quot;,&amp;quot;PROFP&amp;quot;,&amp;quot;TMUNIN&amp;quot;,&amp;quot;TMUNR&amp;quot;,&amp;quot;EDADM&amp;quot;,&amp;quot;EDADMM&amp;quot;,&amp;quot;ANOCA&amp;quot;,&amp;quot;ININHA&amp;quot;,&amp;quot;EDADP&amp;quot;,&amp;quot;SEXO&amp;quot;,&amp;quot;NACV&amp;quot;,&amp;quot;V24HN&amp;quot;,&amp;quot;PESON&amp;quot;,&amp;quot;CODCAUN&amp;quot;,&amp;quot;CODCAU4N&amp;quot;,&amp;quot;NACMAD&amp;quot;,&amp;quot;NACPAD&amp;quot;)
+    columnas.ancho &amp;lt;- c(3,2,2,4,2,1,1,1,1,1,2,4,2,3,2,2,2,4,1,1,2,4,2,4,2,1,1,2,2,2,3,2,1,1,1,4,3,1,3,3)
+  }
+  if (year %in% 2007:2015){
+    columnas.name &amp;lt;- c(&amp;quot;PROI&amp;quot;,&amp;quot;MUNI&amp;quot;,&amp;quot;MESPAR&amp;quot;,&amp;quot;ANOPAR&amp;quot;,&amp;quot;PROPAR&amp;quot;,&amp;quot;MUNPAR&amp;quot;,&amp;quot;LUGARPA&amp;quot;,&amp;quot;ASISTIDO&amp;quot;,&amp;quot;MULTIPLI&amp;quot;,&amp;quot;NORMA&amp;quot;,&amp;quot;CESAREA&amp;quot;,&amp;quot;INTERSEM&amp;quot;,&amp;quot;SEMANAS&amp;quot;,&amp;quot;MESNACM&amp;quot;,&amp;quot;AÑONACM&amp;quot;,&amp;quot;NACIOEM&amp;quot;,&amp;quot;NACIOXM&amp;quot;,&amp;quot;PAISNACM&amp;quot;,&amp;quot;CUANNACM&amp;quot;,&amp;quot;PROMA&amp;quot;,&amp;quot;MUNMA&amp;quot;,&amp;quot;PAISNXM&amp;quot;,&amp;quot;PROREM&amp;quot;,&amp;quot;MUNREM&amp;quot;,&amp;quot;PAISRXM&amp;quot;,&amp;quot;ESTUDIOM&amp;quot;,&amp;quot;CAUTOM&amp;quot;,&amp;quot;ECIVM&amp;quot;,&amp;quot;CASPNM&amp;quot;,&amp;quot;MESMAT&amp;quot;,&amp;quot;AÑOMAT&amp;quot;,&amp;quot;PHECHO&amp;quot;,&amp;quot;ESTABLE1&amp;quot;,&amp;quot;MESEST1&amp;quot;,&amp;quot;AÑOEST1&amp;quot;,&amp;quot;NUMH&amp;quot;,&amp;quot;NUMHV&amp;quot;,&amp;quot;MESHAN&amp;quot;,&amp;quot;AÑOHAN&amp;quot;,&amp;quot;PROHANTE&amp;quot;,&amp;quot;MUNHANTE&amp;quot;,&amp;quot;PAISHANTX&amp;quot;,&amp;quot;NACIOEHA&amp;quot;,&amp;quot;NACIOXHA&amp;quot;,&amp;quot;PAISNAHA&amp;quot;,&amp;quot;MESNACP&amp;quot;,&amp;quot;AÑONACP&amp;quot;,&amp;quot;NACIOEP&amp;quot;,&amp;quot;NACIOXP&amp;quot;,&amp;quot;PAISNACP&amp;quot;,&amp;quot;CUANNACP&amp;quot;,&amp;quot;PROPA&amp;quot;,&amp;quot;MUNPA&amp;quot;,&amp;quot;PAISNXP&amp;quot;,&amp;quot;DONDEP&amp;quot;,&amp;quot;PROREP&amp;quot;,&amp;quot;MUNREP&amp;quot;,&amp;quot;PAISRXP&amp;quot;,&amp;quot;ESTUDIOP&amp;quot;,&amp;quot;CAUTOP&amp;quot;,&amp;quot;TMUNIN&amp;quot;,&amp;quot;TMUNNM&amp;quot;,&amp;quot;TMUNNP&amp;quot;,&amp;quot;TMUNNHA&amp;quot;,&amp;quot;TMUNRM&amp;quot;,&amp;quot;TMUNRP&amp;quot;,&amp;quot;TPAISNACIMIENTOMADRE&amp;quot;,&amp;quot;TPAISNACIMIENTOPADRE&amp;quot;,&amp;quot;TPAISNACIMIENTOHIJOANTE&amp;quot;,&amp;quot;TPAISRMADRE&amp;quot;,&amp;quot;TPAISRPADRE&amp;quot;,&amp;quot;TPAISNACIONALIDADMADRE&amp;quot;,&amp;quot;TPAISNACIONALIDADPADRE&amp;quot;,&amp;quot;TPAISNACIONALIDADHIJOANT&amp;quot;,&amp;quot;TPAISNACIONALIDADNACIDO&amp;quot;,&amp;quot;EDADM&amp;quot;,&amp;quot;EDADMM&amp;quot;,&amp;quot;EDADMREL&amp;quot;,&amp;quot;ANOCA&amp;quot;,&amp;quot;ANOREL&amp;quot;,&amp;quot;INIHA&amp;quot;,&amp;quot;BLANCOS1&amp;quot;,&amp;quot;EDADP&amp;quot;,&amp;quot;NACIOEN&amp;quot;,&amp;quot;NACIOXN&amp;quot;,&amp;quot;PAISNACN&amp;quot;,&amp;quot;SEXO&amp;quot;,&amp;quot;PESON&amp;quot;,&amp;quot;V24HN&amp;quot;,&amp;quot;NACVN&amp;quot;,&amp;quot;AUTOPSN&amp;quot;,&amp;quot;MUERN&amp;quot;,&amp;quot;CODCA1N&amp;quot;,&amp;quot;CODCA2N&amp;quot;,&amp;quot;CODCA4N&amp;quot;,&amp;quot;CLASIF&amp;quot;,&amp;quot;SORDENV&amp;quot;,&amp;quot;NUMHVT&amp;quot;,&amp;quot;TMUNPAR&amp;quot;,&amp;quot;BLANCOS2&amp;quot;)
+    columnas.ancho &amp;lt;- c(2,3,2,4,2,3,1,1,1,1,1,1,2,2,4,1,1,3,1,2,3,3,2,3,3,2,2,1,1,2,4,1,1,2,4,2,2,2,4,2,3,3,1,1,3,2,4,1,1,3,1,2,3,3,1,2,3,3,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,3,3,2,1,1,3,1,4,1,1,1,1,1,2,1,1,2,2,1,17)
+  }
+  nacimientos &amp;lt;- suppressMessages(read_fwf(file = file,col_positions = fwf_widths(columnas.ancho,columnas.name),progress = TRUE))
+  return(nacimientos)
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;div id=&#34;edad-de-los-padres-y-peso-del-nacido-entre-1996-y-2015&#34; class=&#34;section level1&#34;&gt;
+&lt;h1&gt;Edad de los padres y peso del nacido entre 1996 y 2015&lt;/h1&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;years &amp;lt;- 1996:2015
+nacimientos &amp;lt;- vector(&amp;quot;list&amp;quot;,length(years))
+n &amp;lt;- 1
+for (y in years){
+  nacimientos[[n]] &amp;lt;- suppressMessages(DescargaNacimientos(year = y))
+  nacimientos[[n]] &amp;lt;- nacimientos[[n]] %&amp;gt;% select(ANOPAR,EDADM,EDADP,PESON)
+  nacimientos[[n]] &amp;lt;- as.data.frame(sapply( nacimientos[[n]], as.numeric ))
+  n &amp;lt;- n+1
+}
+nacimientos &amp;lt;- bind_rows(nacimientos)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(readr))
+g1 &amp;lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&amp;quot;Edad media de las madres&amp;quot;,subtitle=&amp;quot;Nacimientos 1996-2015&amp;quot;,caption=&amp;quot;Fuente: INE&amp;quot;) + xlab(&amp;quot;Año&amp;quot;)
+
+plot(g1)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos2a-1.png&#34; width=&#34;768&#34; /&gt;&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;g2 &amp;lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADP)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&amp;quot;Edad media de los padres&amp;quot;,subtitle=&amp;quot;Nacimientos 1996-2015&amp;quot;,caption=&amp;quot;Fuente: INE&amp;quot;) + xlab(&amp;quot;Año&amp;quot;)
+
+plot(g2)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos2a-2.png&#34; width=&#34;768&#34; /&gt;&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;g4 &amp;lt;- ggplot(data=nacimientos,aes(x=as.factor(EDADM),y=PESON)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&amp;quot;Peso medio de los nacidos según edad de la madre&amp;quot;,subtitle=&amp;quot;Nacimientos 1996-2015&amp;quot;,caption=&amp;quot;Fuente: INE&amp;quot;) + xlab(&amp;quot;Edad&amp;quot;)
+
+plot(g4)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos2a-3.png&#34; width=&#34;768&#34; /&gt;&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;years &amp;lt;- 1975:2015
+nacimientosP &amp;lt;- vector(&amp;quot;list&amp;quot;,length(years))
+n &amp;lt;- 1
+for (y in years){
+  nacimientosP[[n]] &amp;lt;- DescargaNacimientos(year = y)
+  if (y %in% 1975:1979){
+    fechana &amp;lt;- ISOdate(year = 1900+nacimientosP[[n]]$AÑONA,month = nacimientosP[[n]]$MESNA,day = 1)
+    fechama &amp;lt;- ISOdate(year = 1900+nacimientosP[[n]]$AÑONM,month = nacimientosP[[n]]$MESNM,day = 1)
+    nacimientosP[[n]]$EDADM &amp;lt;- round(difftime(fechana,fechama,units = &amp;quot;days&amp;quot;)/365)
+    nacimientosP[[n]]$NUMHV &amp;lt;- nacimientosP[[n]]$NUMHIJOS
+    nacimientosP[[n]]$ANOPAR &amp;lt;- 1900 + nacimientosP[[n]]$AÑONA
+  }
+  if (y %in% 1980:1995){
+    fechana &amp;lt;- ISOdate(year = 1900+nacimientosP[[n]]$AÑOPA,month = nacimientosP[[n]]$MESPA,day = 1)
+    fechama &amp;lt;- ISOdate(year = 1900+nacimientosP[[n]]$AÑONM,month = nacimientosP[[n]]$MESNM,day = 1)
+    nacimientosP[[n]]$EDADM &amp;lt;- round(difftime(fechana,fechama,units = &amp;quot;days&amp;quot;)/365)
+    nacimientosP[[n]]$NUMHV &amp;lt;- nacimientosP[[n]]$NUMHIV
+    nacimientosP[[n]]$ANOPAR &amp;lt;- 1900 + nacimientosP[[n]]$AÑOPA
+  }
+  nacimientosP[[n]] &amp;lt;- nacimientosP[[n]] %&amp;gt;% dplyr::filter(NUMHV==&amp;quot;01&amp;quot;) %&amp;gt;% select(ANOPAR,EDADM)
+  nacimientosP[[n]] &amp;lt;- as.data.frame(sapply( nacimientosP[[n]], as.numeric ))
+  n &amp;lt;- n+1
+}
+nacimientos &amp;lt;- bind_rows(nacimientosP)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(readr))
+g1 &amp;lt;- ggplot(data = nacimientos,aes(x=as.factor(ANOPAR),y=EDADM)) + geom_boxplot(outlier.alpha = 0.1) + labs(title=&amp;quot;Edad media de las madres primerizas&amp;quot;,subtitle=&amp;quot;Nacimientos 1975-2015&amp;quot;,caption=&amp;quot;Fuente: INE&amp;quot;) + xlab(&amp;quot;Año&amp;quot;)
+
+plot(g1)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos4-1.png&#34; width=&#34;768&#34; /&gt;&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;nacimientos10 &amp;lt;- nacimientos %&amp;gt;% dplyr::filter(ANOPAR %in% seq(1975,2015,10))
+nacimientos10$year &amp;lt;- as.factor(nacimientos10$ANOPAR)
+
+nacimientos10.age &amp;lt;- nacimientos10 %&amp;gt;% dplyr::group_by(year,EDADM) %&amp;gt;% dplyr::summarise(total=n())
+
+g3 &amp;lt;- ggplot(nacimientos10.age) + geom_line(aes(x=EDADM,y=total,color=year))+ labs(title=&amp;quot;Births by age of mother&amp;quot;,subtitle=&amp;quot;Births 1975-2015&amp;quot;,caption=&amp;quot;Source: INE&amp;quot;) + xlab(&amp;quot;Age&amp;quot;) + ylab(&amp;quot;Total births&amp;quot;)
+plot(g3)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-10-05-one-tweet-leads-to-some-r-work-about-births_files/figure-html/nacimientos4-2.png&#34; width=&#34;768&#34; /&gt;&lt;/p&gt;
+&lt;/div&gt;
+</description>
     </item>
     
     <item>
       <title>Funny facts about borrowed stuff in Madrid public libraries</title>
-      <link>https://rafaelmenmell.netlify.com/2018/10/03/funny-facts-about-borrowed-stuff-in-madrid-public-libraries/</link>
+      <link>/2018/10/03/funny-facts-about-borrowed-stuff-in-madrid-public-libraries/</link>
       <pubDate>Wed, 03 Oct 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/10/03/funny-facts-about-borrowed-stuff-in-madrid-public-libraries/</guid>
-      <description>As a regular user of Madrid public libraries I’m glad of having found data about borrowed stuff. So let’s take a look at it and answer a couple of questions.
-Miguel de Cervantes Prize is one of the most richest literary prizes and the most prestigious of the prizes to writers in spanish.
-So, what’s the impact in the popularity of a writer measured by the number of borrowing in public libraries?</description>
+      <description>
+&lt;script src=&#34;/rmarkdown-libs/htmlwidgets/htmlwidgets.js&#34;&gt;&lt;/script&gt;
+&lt;script src=&#34;/rmarkdown-libs/jquery/jquery.min.js&#34;&gt;&lt;/script&gt;
+&lt;link href=&#34;/rmarkdown-libs/dygraphs/dygraph.css&#34; rel=&#34;stylesheet&#34; /&gt;
+&lt;script src=&#34;/rmarkdown-libs/dygraphs/dygraph-combined.js&#34;&gt;&lt;/script&gt;
+&lt;script src=&#34;/rmarkdown-libs/moment/moment.js&#34;&gt;&lt;/script&gt;
+&lt;script src=&#34;/rmarkdown-libs/moment-timezone/moment-timezone-with-data.js&#34;&gt;&lt;/script&gt;
+&lt;script src=&#34;/rmarkdown-libs/moment-fquarter/moment-fquarter.min.js&#34;&gt;&lt;/script&gt;
+&lt;script src=&#34;/rmarkdown-libs/dygraphs-binding/dygraphs.js&#34;&gt;&lt;/script&gt;
+
+
+&lt;p&gt;As a regular user of Madrid public libraries I’m glad of having found data about borrowed stuff. So let’s take a look at it and answer a couple of questions.&lt;/p&gt;
+&lt;p&gt;Miguel de Cervantes Prize is one of the most richest literary prizes and the most prestigious of the prizes to writers in spanish.&lt;/p&gt;
+&lt;p&gt;So, what’s the impact in the popularity of a writer measured by the number of borrowing in public libraries?&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(dygraphs))
+suppressPackageStartupMessages(library(XML))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(htmlwidgets))
+suppressPackageStartupMessages(library(htmltools))
+
+master &amp;lt;- readLines(&amp;quot;http://datos.madrid.es/egob/catalogo/212700-0-bibliotecas-prestamos-historico.dcat&amp;quot;)
+master &amp;lt;- master[grepl(&amp;quot;accessURL&amp;quot;,master)]
+master &amp;lt;- gsub(pattern = &amp;quot; &amp;quot;,replacement = &amp;quot;&amp;quot;,master)
+master &amp;lt;- gsub(&amp;#39;&amp;lt;.*?&amp;gt;&amp;#39;,&amp;#39;&amp;#39;,master)
+master &amp;lt;- master[grepl(&amp;quot;csv&amp;quot;,master)]
+
+rawdata &amp;lt;- vector(&amp;quot;list&amp;quot;,length(master))
+n &amp;lt;- 1
+for (url in master){
+  rawdata[[n]] &amp;lt;- read.csv(file = url,header = TRUE,sep = &amp;quot;;&amp;quot;,quote = &amp;#39;&amp;quot;&amp;#39;,fileEncoding = &amp;quot;latin1&amp;quot;,colClasses = &amp;quot;character&amp;quot;)
+  #nos vamos a quedar con el tipo de objeto T; texto monografías (más o menos libros)
+  if (&amp;quot;prcocs&amp;quot; %in% colnames(rawdata[[n]])){
+    rawdata[[n]] &amp;lt;- rawdata[[n]] %&amp;gt;% dplyr::filter(prcocs==&amp;quot;T    &amp;quot;)
+  }
+  if (&amp;quot;phcocs&amp;quot; %in% colnames(rawdata[[n]])){
+    rawdata[[n]] &amp;lt;- rawdata[[n]] %&amp;gt;% dplyr::filter(phcocs==&amp;quot;T    &amp;quot;) %&amp;gt;% rename(prcocs=phcocs)
+  }
+  if (&amp;quot;phadul&amp;quot; %in% colnames(rawdata[[n]])){
+    rawdata[[n]] &amp;lt;- rawdata[[n]] %&amp;gt;% rename(pradul=phadul)
+  }
+  if (&amp;quot;prbarc&amp;quot; %in% colnames(rawdata[[n]])){
+    rawdata[[n]] &amp;lt;- rawdata[[n]] %&amp;gt;% select(prbarc,prfpre,tiauto,pradul)
+  } else {
+    rawdata[[n]] &amp;lt;- rawdata[[n]] %&amp;gt;% select(phbarc,phfpre,tiauto,pradul)
+  }
+  colnames(rawdata[[n]]) &amp;lt;- c(&amp;quot;codigo&amp;quot;,&amp;quot;fecha&amp;quot;,&amp;quot;autor&amp;quot;,&amp;quot;infantil&amp;quot;)
+  n &amp;lt;- n + 1
+}
+
+rawdata.df &amp;lt;- bind_rows(rawdata)
+rawdata.df &amp;lt;- rawdata.df[grepl(&amp;quot;../../..&amp;quot;,rawdata.df$fecha),]
+rawdata.df$fecha &amp;lt;- dmy(rawdata.df$fecha)
+rawdata.df &amp;lt;- rawdata.df[complete.cases(rawdata.df),]
+
+#vamos a hacer un gráfico con gráficos diarios que siempre es bonito
+# prestamos.diarios &amp;lt;- rawdata.df %&amp;gt;% dplyr::group_by(fecha) %&amp;gt;% summarise(prestamos=n())
+# xts.prestamos.diarios &amp;lt;- xts::xts(x = prestamos.diarios$prestamos,order.by = prestamos.diarios$fecha)
+# dy &amp;lt;- dygraph(data=xts.prestamos.diarios) %&amp;gt;% dyRangeSelector()
+#2014 Goytisolo, Juan
+cerv2014 &amp;lt;- rawdata.df[grepl(&amp;quot;Goytisolo, Juan&amp;quot;,rawdata.df$autor),]
+cerv2014 &amp;lt;- cerv2014 %&amp;gt;% group_by(fecha) %&amp;gt;% summarise(prestamos2014=n())
+
+cerv2015 &amp;lt;- rawdata.df[grepl(&amp;quot;Paso&amp;quot;,rawdata.df$autor),]
+cerv2015 &amp;lt;- cerv2015[grepl(&amp;quot;Fernando&amp;quot;,cerv2015$autor),]
+cerv2015 &amp;lt;- cerv2015 %&amp;gt;% group_by(fecha) %&amp;gt;% summarise(prestamos2015=n())
+
+cerv2016 &amp;lt;- rawdata.df[grepl(&amp;quot;Mendoza, Eduardo&amp;quot;,rawdata.df$autor),]
+cerv2016 &amp;lt;- cerv2016 %&amp;gt;% group_by(fecha) %&amp;gt;% summarise(prestamos2016=n())
+
+cerv2017 &amp;lt;- rawdata.df[grepl(&amp;quot;Ramírez, Sergio&amp;quot;,rawdata.df$autor),]
+cerv2017 &amp;lt;- cerv2017 %&amp;gt;% group_by(fecha) %&amp;gt;% summarise(prestamos2017=n())
+
+cerv &amp;lt;- full_join(cerv2014,cerv2015,by=&amp;quot;fecha&amp;quot;)
+cerv &amp;lt;- full_join(cerv,cerv2016,by=&amp;quot;fecha&amp;quot;)
+cerv &amp;lt;- full_join(cerv,cerv2017,by=&amp;quot;fecha&amp;quot;)
+cerv.graf &amp;lt;- cerv %&amp;gt;% gather(key = year,value = prestamos,2:5)
+
+xts.2014 &amp;lt;- xts::xts(x = cerv2014$prestamos2014,order.by = cerv2014$fecha)
+colnames(xts.2014) &amp;lt;- &amp;quot;prestamos&amp;quot;
+dy2014 &amp;lt;- dygraph(xts.2014,group = &amp;quot;cervantes&amp;quot;,height = 400,main=&amp;quot;Premio Cervantes 2014 - Juan Goytisolo&amp;quot;) %&amp;gt;% dyEvent(&amp;quot;2014-11-24&amp;quot;,&amp;quot;Fallo&amp;quot;) %&amp;gt;% dyEvent(&amp;quot;2015-04-23&amp;quot;,&amp;quot;Entrega&amp;quot;) %&amp;gt;% dyEvent(&amp;quot;2017-06-04&amp;quot;,&amp;quot;Muerte&amp;quot;) %&amp;gt;% dyRangeSelector() %&amp;gt;% dySeries(name = &amp;quot;prestamos&amp;quot;,label = &amp;quot;Juan Goytisolo&amp;quot;) %&amp;gt;% dyOptions(stepPlot = TRUE)
+
+xts.2015 &amp;lt;- xts::xts(x = cerv2015$prestamos2015,order.by = cerv2015$fecha)
+colnames(xts.2015) &amp;lt;- &amp;quot;prestamos&amp;quot;
+dy2015 &amp;lt;- dygraph(xts.2015,group = &amp;quot;cervantes&amp;quot;,height = 400,main=&amp;quot;Premio Cervantes 2015 - Fernando del Paso&amp;quot;) %&amp;gt;% dyEvent(&amp;quot;2015-11-12&amp;quot;,&amp;quot;Fallo&amp;quot;) %&amp;gt;% dyEvent(&amp;quot;2016-04-23&amp;quot;,&amp;quot;Entrega&amp;quot;) %&amp;gt;% dyRangeSelector() %&amp;gt;% dySeries(name = &amp;quot;prestamos&amp;quot;,label = &amp;quot;Fernado del Paso&amp;quot;) %&amp;gt;% dyOptions(stepPlot = TRUE)
+
+xts.2016 &amp;lt;- xts::xts(x = cerv2016$prestamos2016,order.by = cerv2016$fecha)
+colnames(xts.2016) &amp;lt;- &amp;quot;prestamos&amp;quot;
+dy2016 &amp;lt;- dygraph(xts.2016,group = &amp;quot;cervantes&amp;quot;,height = 400,main=&amp;quot;Premio Cervantes 2016 - Eduardo Mendoza&amp;quot;) %&amp;gt;% dyEvent(&amp;quot;2016-11-30&amp;quot;,&amp;quot;Fallo&amp;quot;) %&amp;gt;% dyEvent(&amp;quot;2017-04-23&amp;quot;,&amp;quot;Entrega&amp;quot;) %&amp;gt;% dyRangeSelector() %&amp;gt;% dySeries(name = &amp;quot;prestamos&amp;quot;,label = &amp;quot;Eduardo Mendoza&amp;quot;) %&amp;gt;% dyOptions(stepPlot = TRUE)
+
+bdy &amp;lt;- browsable(tagList(dy2014,dy2015,dy2016))
+bdy&lt;/code&gt;&lt;/pre&gt;
+&lt;div id=&#34;htmlwidget-1&#34; style=&#34;width:960px;height:400px;&#34; class=&#34;dygraphs html-widget&#34;&gt;&lt;/div&gt;
+&lt;script type=&#34;application/json&#34; data-for=&#34;htmlwidget-1&#34;&gt;{&#34;x&#34;:{&#34;attrs&#34;:{&#34;title&#34;:&#34;Premio Cervantes 2014 - Juan Goytisolo&#34;,&#34;labels&#34;:[&#34;week&#34;,&#34;Juan Goytisolo&#34;],&#34;legend&#34;:&#34;auto&#34;,&#34;retainDateWindow&#34;:false,&#34;axes&#34;:{&#34;x&#34;:{&#34;pixelsPerLabel&#34;:60,&#34;drawAxis&#34;:true},&#34;y&#34;:{&#34;drawAxis&#34;:true}},&#34;showRangeSelector&#34;:true,&#34;rangeSelectorHeight&#34;:40,&#34;rangeSelectorPlotFillColor&#34;:&#34; #A7B1C4&#34;,&#34;rangeSelectorPlotStrokeColor&#34;:&#34;#808FAB&#34;,&#34;interactionModel&#34;:&#34;Dygraph.Interaction.defaultModel&#34;,&#34;series&#34;:{&#34;Juan Goytisolo&#34;:{&#34;axis&#34;:&#34;y&#34;}},&#34;stackedGraph&#34;:false,&#34;fillGraph&#34;:false,&#34;fillAlpha&#34;:0.15,&#34;stepPlot&#34;:true,&#34;drawPoints&#34;:false,&#34;pointSize&#34;:1,&#34;drawGapEdgePoints&#34;:false,&#34;connectSeparatedPoints&#34;:false,&#34;strokeWidth&#34;:1,&#34;strokeBorderColor&#34;:&#34;white&#34;,&#34;colorValue&#34;:0.5,&#34;colorSaturation&#34;:1,&#34;includeZero&#34;:false,&#34;drawAxesAtZero&#34;:false,&#34;logscale&#34;:false,&#34;axisTickSize&#34;:3,&#34;axisLineColor&#34;:&#34;black&#34;,&#34;axisLineWidth&#34;:0.3,&#34;axisLabelColor&#34;:&#34;black&#34;,&#34;axisLabelFontSize&#34;:14,&#34;axisLabelWidth&#34;:60,&#34;drawGrid&#34;:true,&#34;gridLineWidth&#34;:0.3,&#34;rightGap&#34;:5,&#34;digitsAfterDecimal&#34;:2,&#34;labelsKMB&#34;:false,&#34;labelsKMG2&#34;:false,&#34;labelsUTC&#34;:false,&#34;maxNumberWidth&#34;:6,&#34;animatedZooms&#34;:false,&#34;mobileDisableYTouch&#34;:true},&#34;scale&#34;:&#34;weekly&#34;,&#34;group&#34;:&#34;cervantes&#34;,&#34;annotations&#34;:[],&#34;shadings&#34;:[],&#34;events&#34;:[{&#34;pos&#34;:&#34;2014-11-24T00:00:00.000Z&#34;,&#34;label&#34;:&#34;Fallo&#34;,&#34;labelLoc&#34;:&#34;top&#34;,&#34;color&#34;:&#34;black&#34;,&#34;strokePattern&#34;:[7,3],&#34;axis&#34;:&#34;x&#34;},{&#34;pos&#34;:&#34;2015-04-23T00:00:00.000Z&#34;,&#34;label&#34;:&#34;Entrega&#34;,&#34;labelLoc&#34;:&#34;top&#34;,&#34;color&#34;:&#34;black&#34;,&#34;strokePattern&#34;:[7,3],&#34;axis&#34;:&#34;x&#34;},{&#34;pos&#34;:&#34;2017-06-04T00:00:00.000Z&#34;,&#34;label&#34;:&#34;Muerte&#34;,&#34;labelLoc&#34;:&#34;top&#34;,&#34;color&#34;:&#34;black&#34;,&#34;strokePattern&#34;:[7,3],&#34;axis&#34;:&#34;x&#34;}],&#34;format&#34;:&#34;date&#34;,&#34;data&#34;:[[&#34;2014-10-01T00:00:00.000Z&#34;,&#34;2014-10-02T00:00:00.000Z&#34;,&#34;2014-10-06T00:00:00.000Z&#34;,&#34;2014-10-09T00:00:00.000Z&#34;,&#34;2014-10-10T00:00:00.000Z&#34;,&#34;2014-10-13T00:00:00.000Z&#34;,&#34;2014-10-15T00:00:00.000Z&#34;,&#34;2014-10-22T00:00:00.000Z&#34;,&#34;2014-10-24T00:00:00.000Z&#34;,&#34;2014-10-27T00:00:00.000Z&#34;,&#34;2014-11-03T00:00:00.000Z&#34;,&#34;2014-11-11T00:00:00.000Z&#34;,&#34;2014-11-14T00:00:00.000Z&#34;,&#34;2014-11-20T00:00:00.000Z&#34;,&#34;2014-11-22T00:00:00.000Z&#34;,&#34;2014-11-24T00:00:00.000Z&#34;,&#34;2014-11-25T00:00:00.000Z&#34;,&#34;2014-11-26T00:00:00.000Z&#34;,&#34;2014-11-27T00:00:00.000Z&#34;,&#34;2014-11-28T00:00:00.000Z&#34;,&#34;2014-11-30T00:00:00.000Z&#34;,&#34;2014-12-01T00:00:00.000Z&#34;,&#34;2014-12-02T00:00:00.000Z&#34;,&#34;2014-12-03T00:00:00.000Z&#34;,&#34;2014-12-04T00:00:00.000Z&#34;,&#34;2014-12-05T00:00:00.000Z&#34;,&#34;2014-12-09T00:00:00.000Z&#34;,&#34;2014-12-10T00:00:00.000Z&#34;,&#34;2014-12-11T00:00:00.000Z&#34;,&#34;2014-12-12T00:00:00.000Z&#34;,&#34;2014-12-15T00:00:00.000Z&#34;,&#34;2014-12-16T00:00:00.000Z&#34;,&#34;2014-12-17T00:00:00.000Z&#34;,&#34;2014-12-18T00:00:00.000Z&#34;,&#34;2014-12-19T00:00:00.000Z&#34;,&#34;2014-12-22T00:00:00.000Z&#34;,&#34;2014-12-28T00:00:00.000Z&#34;,&#34;2015-01-02T00:00:00.000Z&#34;,&#34;2015-01-05T00:00:00.000Z&#34;,&#34;2015-01-07T00:00:00.000Z&#34;,&#34;2015-01-08T00:00:00.000Z&#34;,&#34;2015-01-09T00:00:00.000Z&#34;,&#34;2015-01-12T00:00:00.000Z&#34;,&#34;2015-01-15T00:00:00.000Z&#34;,&#34;2015-01-19T00:00:00.000Z&#34;,&#34;2015-01-20T00:00:00.000Z&#34;,&#34;2015-01-21T00:00:00.000Z&#34;,&#34;2015-01-22T00:00:00.000Z&#34;,&#34;2015-01-26T00:00:00.000Z&#34;,&#34;2015-01-27T00:00:00.000Z&#34;,&#34;2015-02-02T00:00:00.000Z&#34;,&#34;2015-02-03T00:00:00.000Z&#34;,&#34;2015-02-04T00:00:00.000Z&#34;,&#34;2015-02-10T00:00:00.000Z&#34;,&#34;2015-02-17T00:00:00.000Z&#34;,&#34;2015-02-19T00:00:00.000Z&#34;,&#34;2015-02-20T00:00:00.000Z&#34;,&#34;2015-02-24T00:00:00.000Z&#34;,&#34;2015-03-02T00:00:00.000Z&#34;,&#34;2015-03-09T00:00:00.000Z&#34;,&#34;2015-03-23T00:00:00.000Z&#34;,&#34;2015-03-30T00:00:00.000Z&#34;,&#34;2015-03-31T00:00:00.000Z&#34;,&#34;2015-04-01T00:00:00.000Z&#34;,&#34;2015-04-05T00:00:00.000Z&#34;,&#34;2015-04-06T00:00:00.000Z&#34;,&#34;2015-04-08T00:00:00.000Z&#34;,&#34;2015-04-09T00:00:00.000Z&#34;,&#34;2015-04-13T00:00:00.000Z&#34;,&#34;2015-04-14T00:00:00.000Z&#34;,&#34;2015-04-15T00:00:00.000Z&#34;,&#34;2015-04-17T00:00:00.000Z&#34;,&#34;2015-04-21T00:00:00.000Z&#34;,&#34;2015-04-22T00:00:00.000Z&#34;,&#34;2015-04-23T00:00:00.000Z&#34;,&#34;2015-04-24T00:00:00.000Z&#34;,&#34;2015-04-25T00:00:00.000Z&#34;,&#34;2015-04-27T00:00:00.000Z&#34;,&#34;2015-04-28T00:00:00.000Z&#34;,&#34;2015-04-29T00:00:00.000Z&#34;,&#34;2015-04-30T00:00:00.000Z&#34;,&#34;2015-05-03T00:00:00.000Z&#34;,&#34;2015-05-04T00:00:00.000Z&#34;,&#34;2015-05-05T00:00:00.000Z&#34;,&#34;2015-05-06T00:00:00.000Z&#34;,&#34;2015-05-07T00:00:00.000Z&#34;,&#34;2015-05-08T00:00:00.000Z&#34;,&#34;2015-05-10T00:00:00.000Z&#34;,&#34;2015-05-11T00:00:00.000Z&#34;,&#34;2015-05-12T00:00:00.000Z&#34;,&#34;2015-05-13T00:00:00.000Z&#34;,&#34;2015-05-14T00:00:00.000Z&#34;,&#34;2015-05-18T00:00:00.000Z&#34;,&#34;2015-05-19T00:00:00.000Z&#34;,&#34;2015-05-20T00:00:00.000Z&#34;,&#34;2015-05-21T00:00:00.000Z&#34;,&#34;2015-05-25T00:00:00.000Z&#34;,&#34;2015-06-01T00:00:00.000Z&#34;,&#34;2015-06-02T00:00:00.000Z&#34;,&#34;2015-06-08T00:00:00.000Z&#34;,&#34;2015-06-09T00:00:00.000Z&#34;,&#34;2015-06-10T00:00:00.000Z&#34;,&#34;2015-06-11T00:00:00.000Z&#34;,&#34;2015-06-12T00:00:00.000Z&#34;,&#34;2015-06-15T00:00:00.000Z&#34;,&#34;2015-06-18T00:00:00.000Z&#34;,&#34;2015-06-19T00:00:00.000Z&#34;,&#34;2015-06-23T00:00:00.000Z&#34;,&#34;2015-06-24T00:00:00.000Z&#34;,&#34;2015-06-27T00:00:00.000Z&#34;,&#34;2015-06-29T00:00:00.000Z&#34;,&#34;2015-06-30T00:00:00.000Z&#34;,&#34;2015-07-01T00:00:00.000Z&#34;,&#34;2015-07-02T00:00:00.000Z&#34;,&#34;2015-07-03T00:00:00.000Z&#34;,&#34;2015-07-04T00:00:00.000Z&#34;,&#34;2015-07-07T00:00:00.000Z&#34;,&#34;2015-07-13T00:00:00.000Z&#34;,&#34;2015-07-14T00:00:00.000Z&#34;,&#34;2015-07-21T00:00:00.000Z&#34;,&#34;2015-07-22T00:00:00.000Z&#34;,&#34;2015-07-24T00:00:00.000Z&#34;,&#34;2015-07-27T00:00:00.000Z&#34;,&#34;2015-07-30T00:00:00.000Z&#34;,&#34;2015-07-31T00:00:00.000Z&#34;,&#34;2015-08-03T00:00:00.000Z&#34;,&#34;2015-08-04T00:00:00.000Z&#34;,&#34;2015-08-07T00:00:00.000Z&#34;,&#34;2015-08-13T00:00:00.000Z&#34;,&#34;2015-08-18T00:00:00.000Z&#34;,&#34;2015-08-20T00:00:00.000Z&#34;,&#34;2015-08-24T00:00:00.000Z&#34;,&#34;2015-08-25T00:00:00.000Z&#34;,&#34;2015-08-27T00:00:00.000Z&#34;,&#34;2015-08-28T00:00:00.000Z&#34;,&#34;2015-09-01T00:00:00.000Z&#34;,&#34;2015-09-04T00:00:00.000Z&#34;,&#34;2015-09-10T00:00:00.000Z&#34;,&#34;2015-09-14T00:00:00.000Z&#34;,&#34;2015-09-16T00:00:00.000Z&#34;,&#34;2015-09-17T00:00:00.000Z&#34;,&#34;2015-09-18T00:00:00.000Z&#34;,&#34;2015-09-21T00:00:00.000Z&#34;,&#34;2015-09-24T00:00:00.000Z&#34;,&#34;2015-09-25T00:00:00.000Z&#34;,&#34;2015-09-29T00:00:00.000Z&#34;,&#34;2015-09-30T00:00:00.000Z&#34;,&#34;2015-10-02T00:00:00.000Z&#34;,&#34;2015-10-05T00:00:00.000Z&#34;,&#34;2015-10-06T00:00:00.000Z&#34;,&#34;2015-10-07T00:00:00.000Z&#34;,&#34;2015-10-08T00:00:00.000Z&#34;,&#34;2015-10-20T00:00:00.000Z&#34;,&#34;2015-10-21T00:00:00.000Z&#34;,&#34;2015-10-22T00:00:00.000Z&#34;,&#34;2015-10-23T00:00:00.000Z&#34;,&#34;2015-10-24T00:00:00.000Z&#34;,&#34;2015-10-26T00:00:00.000Z&#34;,&#34;2015-11-04T00:00:00.000Z&#34;,&#34;2015-11-05T00:00:00.000Z&#34;,&#34;2015-11-06T00:00:00.000Z&#34;,&#34;2015-11-11T00:00:00.000Z&#34;,&#34;2015-11-12T00:00:00.000Z&#34;,&#34;2015-11-13T00:00:00.000Z&#34;,&#34;2015-11-15T00:00:00.000Z&#34;,&#34;2015-11-30T00:00:00.000Z&#34;,&#34;2015-12-01T00:00:00.000Z&#34;,&#34;2015-12-04T00:00:00.000Z&#34;,&#34;2015-12-09T00:00:00.000Z&#34;,&#34;2015-12-14T00:00:00.000Z&#34;,&#34;2015-12-15T00:00:00.000Z&#34;,&#34;2015-12-21T00:00:00.000Z&#34;,&#34;2015-12-28T00:00:00.000Z&#34;,&#34;2015-12-29T00:00:00.000Z&#34;,&#34;2016-01-04T00:00:00.000Z&#34;,&#34;2016-01-08T00:00:00.000Z&#34;,&#34;2016-01-15T00:00:00.000Z&#34;,&#34;2016-01-18T00:00:00.000Z&#34;,&#34;2016-01-19T00:00:00.000Z&#34;,&#34;2016-01-21T00:00:00.000Z&#34;,&#34;2016-01-22T00:00:00.000Z&#34;,&#34;2016-01-27T00:00:00.000Z&#34;,&#34;2016-02-02T00:00:00.000Z&#34;,&#34;2016-02-03T00:00:00.000Z&#34;,&#34;2016-02-19T00:00:00.000Z&#34;,&#34;2016-02-25T00:00:00.000Z&#34;,&#34;2016-02-29T00:00:00.000Z&#34;,&#34;2016-03-01T00:00:00.000Z&#34;,&#34;2016-03-03T00:00:00.000Z&#34;,&#34;2016-03-04T00:00:00.000Z&#34;,&#34;2016-03-08T00:00:00.000Z&#34;,&#34;2016-03-09T00:00:00.000Z&#34;,&#34;2016-03-10T00:00:00.000Z&#34;,&#34;2016-03-14T00:00:00.000Z&#34;,&#34;2016-03-15T00:00:00.000Z&#34;,&#34;2016-03-16T00:00:00.000Z&#34;,&#34;2016-03-17T00:00:00.000Z&#34;,&#34;2016-03-18T00:00:00.000Z&#34;,&#34;2016-03-21T00:00:00.000Z&#34;,&#34;2016-03-22T00:00:00.000Z&#34;,&#34;2016-04-03T00:00:00.000Z&#34;,&#34;2016-04-04T00:00:00.000Z&#34;,&#34;2016-04-11T00:00:00.000Z&#34;,&#34;2016-04-14T00:00:00.000Z&#34;,&#34;2016-04-15T00:00:00.000Z&#34;,&#34;2016-04-18T00:00:00.000Z&#34;,&#34;2016-04-21T00:00:00.000Z&#34;,&#34;2016-04-25T00:00:00.000Z&#34;,&#34;2016-04-29T00:00:00.000Z&#34;,&#34;2016-05-05T00:00:00.000Z&#34;,&#34;2016-05-06T00:00:00.000Z&#34;,&#34;2016-05-13T00:00:00.000Z&#34;,&#34;2016-05-17T00:00:00.000Z&#34;,&#34;2016-05-23T00:00:00.000Z&#34;,&#34;2016-05-30T00:00:00.000Z&#34;,&#34;2016-06-02T00:00:00.000Z&#34;,&#34;2016-06-06T00:00:00.000Z&#34;,&#34;2016-06-13T00:00:00.000Z&#34;,&#34;2016-06-15T00:00:00.000Z&#34;,&#34;2016-06-20T00:00:00.000Z&#34;,&#34;2016-06-22T00:00:00.000Z&#34;,&#34;2016-07-01T00:00:00.000Z&#34;,&#34;2016-07-06T00:00:00.000Z&#34;,&#34;2016-07-07T00:00:00.000Z&#34;,&#34;2016-07-27T00:00:00.000Z&#34;,&#34;2016-07-29T00:00:00.000Z&#34;,&#34;2016-08-01T00:00:00.000Z&#34;,&#34;2016-08-02T00:00:00.000Z&#34;,&#34;2016-08-10T00:00:00.000Z&#34;,&#34;2016-08-16T00:00:00.000Z&#34;,&#34;2016-08-18T00:00:00.000Z&#34;,&#34;2016-08-19T00:00:00.000Z&#34;,&#34;2016-08-22T00:00:00.000Z&#34;,&#34;2016-08-29T00:00:00.000Z&#34;,&#34;2016-09-05T00:00:00.000Z&#34;,&#34;2016-09-14T00:00:00.000Z&#34;,&#34;2016-09-21T00:00:00.000Z&#34;,&#34;2016-09-27T00:00:00.000Z&#34;,&#34;2016-09-30T00:00:00.000Z&#34;,&#34;2016-10-03T00:00:00.000Z&#34;,&#34;2016-10-06T00:00:00.000Z&#34;,&#34;2016-10-10T00:00:00.000Z&#34;,&#34;2016-10-14T00:00:00.000Z&#34;,&#34;2016-10-21T00:00:00.000Z&#34;,&#34;2016-11-14T00:00:00.000Z&#34;,&#34;2016-11-15T00:00:00.000Z&#34;,&#34;2016-11-21T00:00:00.000Z&#34;,&#34;2016-11-24T00:00:00.000Z&#34;,&#34;2016-11-29T00:00:00.000Z&#34;,&#34;2016-12-02T00:00:00.000Z&#34;,&#34;2016-12-21T00:00:00.000Z&#34;,&#34;2016-12-22T00:00:00.000Z&#34;,&#34;2016-12-27T00:00:00.000Z&#34;,&#34;2016-12-28T00:00:00.000Z&#34;,&#34;2017-01-11T00:00:00.000Z&#34;,&#34;2017-01-23T00:00:00.000Z&#34;,&#34;2017-01-24T00:00:00.000Z&#34;,&#34;2017-01-26T00:00:00.000Z&#34;,&#34;2017-01-31T00:00:00.000Z&#34;,&#34;2017-02-16T00:00:00.000Z&#34;,&#34;2017-02-23T00:00:00.000Z&#34;,&#34;2017-02-25T00:00:00.000Z&#34;,&#34;2017-03-02T00:00:00.000Z&#34;,&#34;2017-03-09T00:00:00.000Z&#34;,&#34;2017-03-14T00:00:00.000Z&#34;,&#34;2017-03-30T00:00:00.000Z&#34;,&#34;2017-04-07T00:00:00.000Z&#34;,&#34;2017-04-17T00:00:00.000Z&#34;,&#34;2017-04-19T00:00:00.000Z&#34;,&#34;2017-04-27T00:00:00.000Z&#34;,&#34;2017-05-05T00:00:00.000Z&#34;,&#34;2017-05-09T00:00:00.000Z&#34;,&#34;2017-05-11T00:00:00.000Z&#34;,&#34;2017-05-12T00:00:00.000Z&#34;,&#34;2017-05-16T00:00:00.000Z&#34;,&#34;2017-05-30T00:00:00.000Z&#34;,&#34;2017-06-05T00:00:00.000Z&#34;,&#34;2017-06-06T00:00:00.000Z&#34;,&#34;2017-06-07T00:00:00.000Z&#34;,&#34;2017-06-08T00:00:00.000Z&#34;,&#34;2017-06-09T00:00:00.000Z&#34;,&#34;2017-06-10T00:00:00.000Z&#34;,&#34;2017-06-11T00:00:00.000Z&#34;,&#34;2017-06-12T00:00:00.000Z&#34;,&#34;2017-06-13T00:00:00.000Z&#34;,&#34;2017-06-14T00:00:00.000Z&#34;,&#34;2017-06-15T00:00:00.000Z&#34;,&#34;2017-06-16T00:00:00.000Z&#34;,&#34;2017-06-19T00:00:00.000Z&#34;,&#34;2017-06-20T00:00:00.000Z&#34;,&#34;2017-06-22T00:00:00.000Z&#34;,&#34;2017-06-23T00:00:00.000Z&#34;,&#34;2017-06-24T00:00:00.000Z&#34;,&#34;2017-06-26T00:00:00.000Z&#34;,&#34;2017-06-27T00:00:00.000Z&#34;,&#34;2017-06-28T00:00:00.000Z&#34;,&#34;2017-06-29T00:00:00.000Z&#34;,&#34;2017-07-03T00:00:00.000Z&#34;,&#34;2017-07-04T00:00:00.000Z&#34;,&#34;2017-07-05T00:00:00.000Z&#34;,&#34;2017-07-06T00:00:00.000Z&#34;,&#34;2017-07-07T00:00:00.000Z&#34;,&#34;2017-07-10T00:00:00.000Z&#34;,&#34;2017-07-11T00:00:00.000Z&#34;,&#34;2017-07-12T00:00:00.000Z&#34;,&#34;2017-07-13T00:00:00.000Z&#34;,&#34;2017-07-14T00:00:00.000Z&#34;,&#34;2017-07-17T00:00:00.000Z&#34;,&#34;2017-07-18T00:00:00.000Z&#34;,&#34;2017-07-19T00:00:00.000Z&#34;,&#34;2017-07-20T00:00:00.000Z&#34;,&#34;2017-07-24T00:00:00.000Z&#34;,&#34;2017-07-26T00:00:00.000Z&#34;,&#34;2017-07-27T00:00:00.000Z&#34;,&#34;2017-07-28T00:00:00.000Z&#34;,&#34;2017-07-31T00:00:00.000Z&#34;,&#34;2017-08-01T00:00:00.000Z&#34;,&#34;2017-08-02T00:00:00.000Z&#34;,&#34;2017-08-03T00:00:00.000Z&#34;,&#34;2017-08-04T00:00:00.000Z&#34;,&#34;2017-08-07T00:00:00.000Z&#34;,&#34;2017-08-08T00:00:00.000Z&#34;,&#34;2017-08-10T00:00:00.000Z&#34;,&#34;2017-08-11T00:00:00.000Z&#34;,&#34;2017-08-14T00:00:00.000Z&#34;,&#34;2017-08-16T00:00:00.000Z&#34;,&#34;2017-08-18T00:00:00.000Z&#34;,&#34;2017-08-21T00:00:00.000Z&#34;,&#34;2017-08-24T00:00:00.000Z&#34;,&#34;2017-08-28T00:00:00.000Z&#34;,&#34;2017-08-30T00:00:00.000Z&#34;,&#34;2017-09-01T00:00:00.000Z&#34;,&#34;2017-09-04T00:00:00.000Z&#34;,&#34;2017-09-05T00:00:00.000Z&#34;,&#34;2017-09-06T00:00:00.000Z&#34;,&#34;2017-09-08T00:00:00.000Z&#34;,&#34;2017-09-11T00:00:00.000Z&#34;,&#34;2017-09-12T00:00:00.000Z&#34;,&#34;2017-09-14T00:00:00.000Z&#34;,&#34;2017-09-26T00:00:00.000Z&#34;,&#34;2017-09-27T00:00:00.000Z&#34;,&#34;2017-09-29T00:00:00.000Z&#34;,&#34;2017-10-02T00:00:00.000Z&#34;,&#34;2017-10-03T00:00:00.000Z&#34;,&#34;2017-10-04T00:00:00.000Z&#34;,&#34;2017-10-05T00:00:00.000Z&#34;,&#34;2017-10-06T00:00:00.000Z&#34;,&#34;2017-10-16T00:00:00.000Z&#34;,&#34;2017-10-19T00:00:00.000Z&#34;,&#34;2017-10-26T00:00:00.000Z&#34;,&#34;2017-10-27T00:00:00.000Z&#34;],[1,1,2,1,1,1,2,1,2,1,3,2,1,1,1,1,10,8,5,2,1,7,6,1,2,6,7,5,8,3,1,4,7,4,1,2,1,4,4,3,3,2,4,4,2,2,1,2,4,1,3,1,1,1,1,1,3,1,1,1,1,3,1,1,1,1,1,1,2,3,3,1,2,1,6,15,1,17,5,6,3,2,4,1,4,2,3,1,4,4,3,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,2,1,1,5,4,3,1,3,1,1,1,3,1,2,5,1,5,4,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,4,1,3,2,2,1,1,3,1,1,1,4,1,1,1,1,1,1,2,2,1,1,1,2,1,1,2,1,1,1,2,3,1,1,3,1,1,1,1,1,1,1,1,1,1,5,1,1,1,2,2,1,1,1,2,1,2,1,1,1,2,1,1,2,1,2,2,1,1,1,1,1,2,2,1,1,1,2,1,1,2,1,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1,2,1,2,1,1,1,1,1,2,1,1,2,1,4,1,1,2,1,1,1,1,1,1,1,1,1,1,1,3,3,1,3,1,1,2,1,1,5,5,3,4,3,1,1,6,4,4,7,4,5,6,1,2,1,3,3,1,1,7,4,4,4,6,4,2,3,2,4,2,3,7,5,4,1,3,3,2,4,5,4,2,2,5,3,2,2,2,1,1,4,2,3,3,2,1,1,2,1,2,1,1,3,1,3,1,2,1,2,1,1,1,1]],&#34;fixedtz&#34;:false,&#34;tzone&#34;:&#34;UTC&#34;},&#34;evals&#34;:[&#34;attrs.interactionModel&#34;],&#34;jsHooks&#34;:[]}&lt;/script&gt;
+&lt;div id=&#34;htmlwidget-2&#34; style=&#34;width:960px;height:400px;&#34; class=&#34;dygraphs html-widget&#34;&gt;&lt;/div&gt;
+&lt;script type=&#34;application/json&#34; data-for=&#34;htmlwidget-2&#34;&gt;{&#34;x&#34;:{&#34;attrs&#34;:{&#34;title&#34;:&#34;Premio Cervantes 2015 - Fernando del Paso&#34;,&#34;labels&#34;:[&#34;week&#34;,&#34;Fernado del Paso&#34;],&#34;legend&#34;:&#34;auto&#34;,&#34;retainDateWindow&#34;:false,&#34;axes&#34;:{&#34;x&#34;:{&#34;pixelsPerLabel&#34;:60,&#34;drawAxis&#34;:true},&#34;y&#34;:{&#34;drawAxis&#34;:true}},&#34;showRangeSelector&#34;:true,&#34;rangeSelectorHeight&#34;:40,&#34;rangeSelectorPlotFillColor&#34;:&#34; #A7B1C4&#34;,&#34;rangeSelectorPlotStrokeColor&#34;:&#34;#808FAB&#34;,&#34;interactionModel&#34;:&#34;Dygraph.Interaction.defaultModel&#34;,&#34;series&#34;:{&#34;Fernado del Paso&#34;:{&#34;axis&#34;:&#34;y&#34;}},&#34;stackedGraph&#34;:false,&#34;fillGraph&#34;:false,&#34;fillAlpha&#34;:0.15,&#34;stepPlot&#34;:true,&#34;drawPoints&#34;:false,&#34;pointSize&#34;:1,&#34;drawGapEdgePoints&#34;:false,&#34;connectSeparatedPoints&#34;:false,&#34;strokeWidth&#34;:1,&#34;strokeBorderColor&#34;:&#34;white&#34;,&#34;colorValue&#34;:0.5,&#34;colorSaturation&#34;:1,&#34;includeZero&#34;:false,&#34;drawAxesAtZero&#34;:false,&#34;logscale&#34;:false,&#34;axisTickSize&#34;:3,&#34;axisLineColor&#34;:&#34;black&#34;,&#34;axisLineWidth&#34;:0.3,&#34;axisLabelColor&#34;:&#34;black&#34;,&#34;axisLabelFontSize&#34;:14,&#34;axisLabelWidth&#34;:60,&#34;drawGrid&#34;:true,&#34;gridLineWidth&#34;:0.3,&#34;rightGap&#34;:5,&#34;digitsAfterDecimal&#34;:2,&#34;labelsKMB&#34;:false,&#34;labelsKMG2&#34;:false,&#34;labelsUTC&#34;:false,&#34;maxNumberWidth&#34;:6,&#34;animatedZooms&#34;:false,&#34;mobileDisableYTouch&#34;:true},&#34;scale&#34;:&#34;weekly&#34;,&#34;group&#34;:&#34;cervantes&#34;,&#34;annotations&#34;:[],&#34;shadings&#34;:[],&#34;events&#34;:[{&#34;pos&#34;:&#34;2015-11-12T00:00:00.000Z&#34;,&#34;label&#34;:&#34;Fallo&#34;,&#34;labelLoc&#34;:&#34;top&#34;,&#34;color&#34;:&#34;black&#34;,&#34;strokePattern&#34;:[7,3],&#34;axis&#34;:&#34;x&#34;},{&#34;pos&#34;:&#34;2016-04-23T00:00:00.000Z&#34;,&#34;label&#34;:&#34;Entrega&#34;,&#34;labelLoc&#34;:&#34;top&#34;,&#34;color&#34;:&#34;black&#34;,&#34;strokePattern&#34;:[7,3],&#34;axis&#34;:&#34;x&#34;}],&#34;format&#34;:&#34;date&#34;,&#34;data&#34;:[[&#34;2014-12-10T00:00:00.000Z&#34;,&#34;2015-04-18T00:00:00.000Z&#34;,&#34;2015-11-13T00:00:00.000Z&#34;,&#34;2015-11-18T00:00:00.000Z&#34;,&#34;2015-12-18T00:00:00.000Z&#34;,&#34;2016-04-26T00:00:00.000Z&#34;,&#34;2016-05-13T00:00:00.000Z&#34;,&#34;2016-07-21T00:00:00.000Z&#34;,&#34;2016-07-22T00:00:00.000Z&#34;,&#34;2016-07-26T00:00:00.000Z&#34;,&#34;2016-07-29T00:00:00.000Z&#34;,&#34;2016-08-02T00:00:00.000Z&#34;,&#34;2016-08-04T00:00:00.000Z&#34;,&#34;2016-08-05T00:00:00.000Z&#34;,&#34;2016-08-08T00:00:00.000Z&#34;,&#34;2016-08-09T00:00:00.000Z&#34;,&#34;2016-08-12T00:00:00.000Z&#34;,&#34;2016-08-16T00:00:00.000Z&#34;,&#34;2016-08-19T00:00:00.000Z&#34;,&#34;2016-08-25T00:00:00.000Z&#34;,&#34;2016-09-01T00:00:00.000Z&#34;,&#34;2016-09-08T00:00:00.000Z&#34;,&#34;2016-09-09T00:00:00.000Z&#34;,&#34;2016-09-10T00:00:00.000Z&#34;,&#34;2016-09-12T00:00:00.000Z&#34;,&#34;2016-10-05T00:00:00.000Z&#34;,&#34;2016-10-11T00:00:00.000Z&#34;,&#34;2016-10-13T00:00:00.000Z&#34;,&#34;2016-10-14T00:00:00.000Z&#34;,&#34;2016-11-17T00:00:00.000Z&#34;,&#34;2016-12-15T00:00:00.000Z&#34;,&#34;2016-12-27T00:00:00.000Z&#34;,&#34;2017-01-03T00:00:00.000Z&#34;,&#34;2017-01-19T00:00:00.000Z&#34;,&#34;2017-02-20T00:00:00.000Z&#34;,&#34;2017-03-09T00:00:00.000Z&#34;,&#34;2017-04-08T00:00:00.000Z&#34;,&#34;2017-05-09T00:00:00.000Z&#34;,&#34;2017-05-10T00:00:00.000Z&#34;,&#34;2017-05-17T00:00:00.000Z&#34;,&#34;2017-06-29T00:00:00.000Z&#34;,&#34;2017-10-13T00:00:00.000Z&#34;],[1,1,1,2,1,1,1,5,1,2,1,4,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],&#34;fixedtz&#34;:false,&#34;tzone&#34;:&#34;UTC&#34;},&#34;evals&#34;:[&#34;attrs.interactionModel&#34;],&#34;jsHooks&#34;:[]}&lt;/script&gt;
+&lt;div id=&#34;htmlwidget-3&#34; style=&#34;width:960px;height:400px;&#34; class=&#34;dygraphs html-widget&#34;&gt;&lt;/div&gt;
+&lt;script type=&#34;application/json&#34; data-for=&#34;htmlwidget-3&#34;&gt;{&#34;x&#34;:{&#34;attrs&#34;:{&#34;title&#34;:&#34;Premio Cervantes 2016 - Eduardo Mendoza&#34;,&#34;labels&#34;:[&#34;day&#34;,&#34;Eduardo Mendoza&#34;],&#34;legend&#34;:&#34;auto&#34;,&#34;retainDateWindow&#34;:false,&#34;axes&#34;:{&#34;x&#34;:{&#34;pixelsPerLabel&#34;:60,&#34;drawAxis&#34;:true},&#34;y&#34;:{&#34;drawAxis&#34;:true}},&#34;showRangeSelector&#34;:true,&#34;rangeSelectorHeight&#34;:40,&#34;rangeSelectorPlotFillColor&#34;:&#34; #A7B1C4&#34;,&#34;rangeSelectorPlotStrokeColor&#34;:&#34;#808FAB&#34;,&#34;interactionModel&#34;:&#34;Dygraph.Interaction.defaultModel&#34;,&#34;series&#34;:{&#34;Eduardo Mendoza&#34;:{&#34;axis&#34;:&#34;y&#34;}},&#34;stackedGraph&#34;:false,&#34;fillGraph&#34;:false,&#34;fillAlpha&#34;:0.15,&#34;stepPlot&#34;:true,&#34;drawPoints&#34;:false,&#34;pointSize&#34;:1,&#34;drawGapEdgePoints&#34;:false,&#34;connectSeparatedPoints&#34;:false,&#34;strokeWidth&#34;:1,&#34;strokeBorderColor&#34;:&#34;white&#34;,&#34;colorValue&#34;:0.5,&#34;colorSaturation&#34;:1,&#34;includeZero&#34;:false,&#34;drawAxesAtZero&#34;:false,&#34;logscale&#34;:false,&#34;axisTickSize&#34;:3,&#34;axisLineColor&#34;:&#34;black&#34;,&#34;axisLineWidth&#34;:0.3,&#34;axisLabelColor&#34;:&#34;black&#34;,&#34;axisLabelFontSize&#34;:14,&#34;axisLabelWidth&#34;:60,&#34;drawGrid&#34;:true,&#34;gridLineWidth&#34;:0.3,&#34;rightGap&#34;:5,&#34;digitsAfterDecimal&#34;:2,&#34;labelsKMB&#34;:false,&#34;labelsKMG2&#34;:false,&#34;labelsUTC&#34;:false,&#34;maxNumberWidth&#34;:6,&#34;animatedZooms&#34;:false,&#34;mobileDisableYTouch&#34;:true},&#34;scale&#34;:&#34;daily&#34;,&#34;group&#34;:&#34;cervantes&#34;,&#34;annotations&#34;:[],&#34;shadings&#34;:[],&#34;events&#34;:[{&#34;pos&#34;:&#34;2016-11-30T00:00:00.000Z&#34;,&#34;label&#34;:&#34;Fallo&#34;,&#34;labelLoc&#34;:&#34;top&#34;,&#34;color&#34;:&#34;black&#34;,&#34;strokePattern&#34;:[7,3],&#34;axis&#34;:&#34;x&#34;},{&#34;pos&#34;:&#34;2017-04-23T00:00:00.000Z&#34;,&#34;label&#34;:&#34;Entrega&#34;,&#34;labelLoc&#34;:&#34;top&#34;,&#34;color&#34;:&#34;black&#34;,&#34;strokePattern&#34;:[7,3],&#34;axis&#34;:&#34;x&#34;}],&#34;format&#34;:&#34;date&#34;,&#34;data&#34;:[[&#34;2014-10-01T00:00:00.000Z&#34;,&#34;2014-10-02T00:00:00.000Z&#34;,&#34;2014-10-03T00:00:00.000Z&#34;,&#34;2014-10-06T00:00:00.000Z&#34;,&#34;2014-10-07T00:00:00.000Z&#34;,&#34;2014-10-08T00:00:00.000Z&#34;,&#34;2014-10-09T00:00:00.000Z&#34;,&#34;2014-10-10T00:00:00.000Z&#34;,&#34;2014-10-11T00:00:00.000Z&#34;,&#34;2014-10-12T00:00:00.000Z&#34;,&#34;2014-10-13T00:00:00.000Z&#34;,&#34;2014-10-14T00:00:00.000Z&#34;,&#34;2014-10-15T00:00:00.000Z&#34;,&#34;2014-10-16T00:00:00.000Z&#34;,&#34;2014-10-17T00:00:00.000Z&#34;,&#34;2014-10-20T00:00:00.000Z&#34;,&#34;2014-10-21T00:00:00.000Z&#34;,&#34;2014-10-22T00:00:00.000Z&#34;,&#34;2014-10-23T00:00:00.000Z&#34;,&#34;2014-10-24T00:00:00.000Z&#34;,&#34;2014-10-30T00:00:00.000Z&#34;,&#34;2014-10-31T00:00:00.000Z&#34;,&#34;2014-11-03T00:00:00.000Z&#34;,&#34;2014-11-04T00:00:00.000Z&#34;,&#34;2014-11-05T00:00:00.000Z&#34;,&#34;2014-11-06T00:00:00.000Z&#34;,&#34;2014-11-07T00:00:00.000Z&#34;,&#34;2014-11-09T00:00:00.000Z&#34;,&#34;2014-11-11T00:00:00.000Z&#34;,&#34;2014-11-12T00:00:00.000Z&#34;,&#34;2014-11-14T00:00:00.000Z&#34;,&#34;2014-11-15T00:00:00.000Z&#34;,&#34;2014-11-17T00:00:00.000Z&#34;,&#34;2014-11-18T00:00:00.000Z&#34;,&#34;2014-11-19T00:00:00.000Z&#34;,&#34;2014-11-20T00:00:00.000Z&#34;,&#34;2014-11-25T00:00:00.000Z&#34;,&#34;2014-11-26T00:00:00.000Z&#34;,&#34;2014-11-27T00:00:00.000Z&#34;,&#34;2014-11-28T00:00:00.000Z&#34;,&#34;2014-11-30T00:00:00.000Z&#34;,&#34;2014-12-01T00:00:00.000Z&#34;,&#34;2014-12-02T00:00:00.000Z&#34;,&#34;2014-12-03T00:00:00.000Z&#34;,&#34;2014-12-04T00:00:00.000Z&#34;,&#34;2014-12-05T00:00:00.000Z&#34;,&#34;2014-12-09T00:00:00.000Z&#34;,&#34;2014-12-10T00:00:00.000Z&#34;,&#34;2014-12-11T00:00:00.000Z&#34;,&#34;2014-12-12T00:00:00.000Z&#34;,&#34;2014-12-15T00:00:00.000Z&#34;,&#34;2014-12-16T00:00:00.000Z&#34;,&#34;2014-12-17T00:00:00.000Z&#34;,&#34;2014-12-18T00:00:00.000Z&#34;,&#34;2014-12-19T00:00:00.000Z&#34;,&#34;2014-12-20T00:00:00.000Z&#34;,&#34;2014-12-22T00:00:00.000Z&#34;,&#34;2014-12-26T00:00:00.000Z&#34;,&#34;2014-12-30T00:00:00.000Z&#34;,&#34;2015-01-02T00:00:00.000Z&#34;,&#34;2015-01-05T00:00:00.000Z&#34;,&#34;2015-01-07T00:00:00.000Z&#34;,&#34;2015-01-08T00:00:00.000Z&#34;,&#34;2015-01-09T00:00:00.000Z&#34;,&#34;2015-01-10T00:00:00.000Z&#34;,&#34;2015-01-12T00:00:00.000Z&#34;,&#34;2015-01-13T00:00:00.000Z&#34;,&#34;2015-01-14T00:00:00.000Z&#34;,&#34;2015-01-15T00:00:00.000Z&#34;,&#34;2015-01-16T00:00:00.000Z&#34;,&#34;2015-01-19T00:00:00.000Z&#34;,&#34;2015-01-21T00:00:00.000Z&#34;,&#34;2015-01-22T00:00:00.000Z&#34;,&#34;2015-01-26T00:00:00.000Z&#34;,&#34;2015-01-27T00:00:00.000Z&#34;,&#34;2015-01-28T00:00:00.000Z&#34;,&#34;2015-01-30T00:00:00.000Z&#34;,&#34;2015-02-02T00:00:00.000Z&#34;,&#34;2015-02-03T00:00:00.000Z&#34;,&#34;2015-02-04T00:00:00.000Z&#34;,&#34;2015-02-05T00:00:00.000Z&#34;,&#34;2015-02-06T00:00:00.000Z&#34;,&#34;2015-02-10T00:00:00.000Z&#34;,&#34;2015-02-12T00:00:00.000Z&#34;,&#34;2015-02-13T00:00:00.000Z&#34;,&#34;2015-02-16T00:00:00.000Z&#34;,&#34;2015-02-17T00:00:00.000Z&#34;,&#34;2015-02-18T00:00:00.000Z&#34;,&#34;2015-02-19T00:00:00.000Z&#34;,&#34;2015-02-20T00:00:00.000Z&#34;,&#34;2015-02-23T00:00:00.000Z&#34;,&#34;2015-02-24T00:00:00.000Z&#34;,&#34;2015-02-27T00:00:00.000Z&#34;,&#34;2015-02-28T00:00:00.000Z&#34;,&#34;2015-03-04T00:00:00.000Z&#34;,&#34;2015-03-07T00:00:00.000Z&#34;,&#34;2015-03-13T00:00:00.000Z&#34;,&#34;2015-03-14T00:00:00.000Z&#34;,&#34;2015-03-15T00:00:00.000Z&#34;,&#34;2015-03-16T00:00:00.000Z&#34;,&#34;2015-03-18T00:00:00.000Z&#34;,&#34;2015-03-20T00:00:00.000Z&#34;,&#34;2015-03-23T00:00:00.000Z&#34;,&#34;2015-03-26T00:00:00.000Z&#34;,&#34;2015-03-28T00:00:00.000Z&#34;,&#34;2015-03-30T00:00:00.000Z&#34;,&#34;2015-03-31T00:00:00.000Z&#34;,&#34;2015-04-01T00:00:00.000Z&#34;,&#34;2015-04-05T00:00:00.000Z&#34;,&#34;2015-04-06T00:00:00.000Z&#34;,&#34;2015-04-07T00:00:00.000Z&#34;,&#34;2015-04-08T00:00:00.000Z&#34;,&#34;2015-04-09T00:00:00.000Z&#34;,&#34;2015-04-10T00:00:00.000Z&#34;,&#34;2015-04-12T00:00:00.000Z&#34;,&#34;2015-04-13T00:00:00.000Z&#34;,&#34;2015-04-14T00:00:00.000Z&#34;,&#34;2015-04-15T00:00:00.000Z&#34;,&#34;2015-04-16T00:00:00.000Z&#34;,&#34;2015-04-17T00:00:00.000Z&#34;,&#34;2015-04-20T00:00:00.000Z&#34;,&#34;2015-04-21T00:00:00.000Z&#34;,&#34;2015-04-23T00:00:00.000Z&#34;,&#34;2015-04-24T00:00:00.000Z&#34;,&#34;2015-04-25T00:00:00.000Z&#34;,&#34;2015-04-26T00:00:00.000Z&#34;,&#34;2015-04-27T00:00:00.000Z&#34;,&#34;2015-04-28T00:00:00.000Z&#34;,&#34;2015-04-29T00:00:00.000Z&#34;,&#34;2015-04-30T00:00:00.000Z&#34;,&#34;2015-05-04T00:00:00.000Z&#34;,&#34;2015-05-05T00:00:00.000Z&#34;,&#34;2015-05-06T00:00:00.000Z&#34;,&#34;2015-05-07T00:00:00.000Z&#34;,&#34;2015-05-08T00:00:00.000Z&#34;,&#34;2015-05-11T00:00:00.000Z&#34;,&#34;2015-05-12T00:00:00.000Z&#34;,&#34;2015-05-13T00:00:00.000Z&#34;,&#34;2015-05-14T00:00:00.000Z&#34;,&#34;2015-05-16T00:00:00.000Z&#34;,&#34;2015-05-18T00:00:00.000Z&#34;,&#34;2015-05-19T00:00:00.000Z&#34;,&#34;2015-05-20T00:00:00.000Z&#34;,&#34;2015-05-21T00:00:00.000Z&#34;,&#34;2015-05-22T00:00:00.000Z&#34;,&#34;2015-05-26T00:00:00.000Z&#34;,&#34;2015-05-27T00:00:00.000Z&#34;,&#34;2015-05-28T00:00:00.000Z&#34;,&#34;2015-06-01T00:00:00.000Z&#34;,&#34;2015-06-02T00:00:00.000Z&#34;,&#34;2015-06-08T00:00:00.000Z&#34;,&#34;2015-06-10T00:00:00.000Z&#34;,&#34;2015-06-11T00:00:00.000Z&#34;,&#34;2015-06-12T00:00:00.000Z&#34;,&#34;2015-06-15T00:00:00.000Z&#34;,&#34;2015-06-17T00:00:00.000Z&#34;,&#34;2015-06-18T00:00:00.000Z&#34;,&#34;2015-06-19T00:00:00.000Z&#34;,&#34;2015-06-21T00:00:00.000Z&#34;,&#34;2015-06-23T00:00:00.000Z&#34;,&#34;2015-06-24T00:00:00.000Z&#34;,&#34;2015-06-29T00:00:00.000Z&#34;,&#34;2015-06-30T00:00:00.000Z&#34;,&#34;2015-07-01T00:00:00.000Z&#34;,&#34;2015-07-02T00:00:00.000Z&#34;,&#34;2015-07-03T00:00:00.000Z&#34;,&#34;2015-07-05T00:00:00.000Z&#34;,&#34;2015-07-06T00:00:00.000Z&#34;,&#34;2015-07-07T00:00:00.000Z&#34;,&#34;2015-07-08T00:00:00.000Z&#34;,&#34;2015-07-09T00:00:00.000Z&#34;,&#34;2015-07-10T00:00:00.000Z&#34;,&#34;2015-07-13T00:00:00.000Z&#34;,&#34;2015-07-14T00:00:00.000Z&#34;,&#34;2015-07-15T00:00:00.000Z&#34;,&#34;2015-07-16T00:00:00.000Z&#34;,&#34;2015-07-17T00:00:00.000Z&#34;,&#34;2015-07-19T00:00:00.000Z&#34;,&#34;2015-07-20T00:00:00.000Z&#34;,&#34;2015-07-21T00:00:00.000Z&#34;,&#34;2015-07-22T00:00:00.000Z&#34;,&#34;2015-07-23T00:00:00.000Z&#34;,&#34;2015-07-24T00:00:00.000Z&#34;,&#34;2015-07-27T00:00:00.000Z&#34;,&#34;2015-07-29T00:00:00.000Z&#34;,&#34;2015-07-30T00:00:00.000Z&#34;,&#34;2015-07-31T00:00:00.000Z&#34;,&#34;2015-08-03T00:00:00.000Z&#34;,&#34;2015-08-04T00:00:00.000Z&#34;,&#34;2015-08-05T00:00:00.000Z&#34;,&#34;2015-08-06T00:00:00.000Z&#34;,&#34;2015-08-07T00:00:00.000Z&#34;,&#34;2015-08-10T00:00:00.000Z&#34;,&#34;2015-08-11T00:00:00.000Z&#34;,&#34;2015-08-12T00:00:00.000Z&#34;,&#34;2015-08-13T00:00:00.000Z&#34;,&#34;2015-08-14T00:00:00.000Z&#34;,&#34;2015-08-17T00:00:00.000Z&#34;,&#34;2015-08-18T00:00:00.000Z&#34;,&#34;2015-08-19T00:00:00.000Z&#34;,&#34;2015-08-20T00:00:00.000Z&#34;,&#34;2015-08-24T00:00:00.000Z&#34;,&#34;2015-08-25T00:00:00.000Z&#34;,&#34;2015-08-26T00:00:00.000Z&#34;,&#34;2015-08-27T00:00:00.000Z&#34;,&#34;2015-08-28T00:00:00.000Z&#34;,&#34;2015-09-01T00:00:00.000Z&#34;,&#34;2015-09-02T00:00:00.000Z&#34;,&#34;2015-09-03T00:00:00.000Z&#34;,&#34;2015-09-04T00:00:00.000Z&#34;,&#34;2015-09-08T00:00:00.000Z&#34;,&#34;2015-09-09T00:00:00.000Z&#34;,&#34;2015-09-10T00:00:00.000Z&#34;,&#34;2015-09-14T00:00:00.000Z&#34;,&#34;2015-09-15T00:00:00.000Z&#34;,&#34;2015-09-16T00:00:00.000Z&#34;,&#34;2015-09-17T00:00:00.000Z&#34;,&#34;2015-09-18T00:00:00.000Z&#34;,&#34;2015-09-20T00:00:00.000Z&#34;,&#34;2015-09-21T00:00:00.000Z&#34;,&#34;2015-09-22T00:00:00.000Z&#34;,&#34;2015-09-23T00:00:00.000Z&#34;,&#34;2015-09-25T00:00:00.000Z&#34;,&#34;2015-09-28T00:00:00.000Z&#34;,&#34;2015-09-29T00:00:00.000Z&#34;,&#34;2015-09-30T00:00:00.000Z&#34;,&#34;2015-10-01T00:00:00.000Z&#34;,&#34;2015-10-02T00:00:00.000Z&#34;,&#34;2015-10-03T00:00:00.000Z&#34;,&#34;2015-10-05T00:00:00.000Z&#34;,&#34;2015-10-06T00:00:00.000Z&#34;,&#34;2015-10-07T00:00:00.000Z&#34;,&#34;2015-10-08T00:00:00.000Z&#34;,&#34;2015-10-09T00:00:00.000Z&#34;,&#34;2015-10-13T00:00:00.000Z&#34;,&#34;2015-10-14T00:00:00.000Z&#34;,&#34;2015-10-15T00:00:00.000Z&#34;,&#34;2015-10-16T00:00:00.000Z&#34;,&#34;2015-10-17T00:00:00.000Z&#34;,&#34;2015-10-19T00:00:00.000Z&#34;,&#34;2015-10-20T00:00:00.000Z&#34;,&#34;2015-10-21T00:00:00.000Z&#34;,&#34;2015-10-22T00:00:00.000Z&#34;,&#34;2015-10-23T00:00:00.000Z&#34;,&#34;2015-10-24T00:00:00.000Z&#34;,&#34;2015-10-26T00:00:00.000Z&#34;,&#34;2015-10-27T00:00:00.000Z&#34;,&#34;2015-10-29T00:00:00.000Z&#34;,&#34;2015-10-31T00:00:00.000Z&#34;,&#34;2015-11-02T00:00:00.000Z&#34;,&#34;2015-11-03T00:00:00.000Z&#34;,&#34;2015-11-04T00:00:00.000Z&#34;,&#34;2015-11-05T00:00:00.000Z&#34;,&#34;2015-11-06T00:00:00.000Z&#34;,&#34;2015-11-07T00:00:00.000Z&#34;,&#34;2015-11-10T00:00:00.000Z&#34;,&#34;2015-11-11T00:00:00.000Z&#34;,&#34;2015-11-12T00:00:00.000Z&#34;,&#34;2015-11-13T00:00:00.000Z&#34;,&#34;2015-11-14T00:00:00.000Z&#34;,&#34;2015-11-16T00:00:00.000Z&#34;,&#34;2015-11-17T00:00:00.000Z&#34;,&#34;2015-11-18T00:00:00.000Z&#34;,&#34;2015-11-19T00:00:00.000Z&#34;,&#34;2015-11-20T00:00:00.000Z&#34;,&#34;2015-11-21T00:00:00.000Z&#34;,&#34;2015-11-22T00:00:00.000Z&#34;,&#34;2015-11-23T00:00:00.000Z&#34;,&#34;2015-11-24T00:00:00.000Z&#34;,&#34;2015-11-25T00:00:00.000Z&#34;,&#34;2015-11-26T00:00:00.000Z&#34;,&#34;2015-12-01T00:00:00.000Z&#34;,&#34;2015-12-02T00:00:00.000Z&#34;,&#34;2015-12-03T00:00:00.000Z&#34;,&#34;2015-12-04T00:00:00.000Z&#34;,&#34;2015-12-05T00:00:00.000Z&#34;,&#34;2015-12-07T00:00:00.000Z&#34;,&#34;2015-12-09T00:00:00.000Z&#34;,&#34;2015-12-10T00:00:00.000Z&#34;,&#34;2015-12-11T00:00:00.000Z&#34;,&#34;2015-12-12T00:00:00.000Z&#34;,&#34;2015-12-13T00:00:00.000Z&#34;,&#34;2015-12-14T00:00:00.000Z&#34;,&#34;2015-12-15T00:00:00.000Z&#34;,&#34;2015-12-16T00:00:00.000Z&#34;,&#34;2015-12-17T00:00:00.000Z&#34;,&#34;2015-12-18T00:00:00.000Z&#34;,&#34;2015-12-20T00:00:00.000Z&#34;,&#34;2015-12-21T00:00:00.000Z&#34;,&#34;2015-12-22T00:00:00.000Z&#34;,&#34;2015-12-23T00:00:00.000Z&#34;,&#34;2015-12-28T00:00:00.000Z&#34;,&#34;2015-12-29T00:00:00.000Z&#34;,&#34;2015-12-30T00:00:00.000Z&#34;,&#34;2016-01-02T00:00:00.000Z&#34;,&#34;2016-01-04T00:00:00.000Z&#34;,&#34;2016-01-05T00:00:00.000Z&#34;,&#34;2016-01-07T00:00:00.000Z&#34;,&#34;2016-01-08T00:00:00.000Z&#34;,&#34;2016-01-09T00:00:00.000Z&#34;,&#34;2016-01-11T00:00:00.000Z&#34;,&#34;2016-01-12T00:00:00.000Z&#34;,&#34;2016-01-13T00:00:00.000Z&#34;,&#34;2016-01-14T00:00:00.000Z&#34;,&#34;2016-01-15T00:00:00.000Z&#34;,&#34;2016-01-18T00:00:00.000Z&#34;,&#34;2016-01-19T00:00:00.000Z&#34;,&#34;2016-01-20T00:00:00.000Z&#34;,&#34;2016-01-21T00:00:00.000Z&#34;,&#34;2016-01-22T00:00:00.000Z&#34;,&#34;2016-01-23T00:00:00.000Z&#34;,&#34;2016-01-24T00:00:00.000Z&#34;,&#34;2016-01-25T00:00:00.000Z&#34;,&#34;2016-01-26T00:00:00.000Z&#34;,&#34;2016-01-27T00:00:00.000Z&#34;,&#34;2016-01-28T00:00:00.000Z&#34;,&#34;2016-01-29T00:00:00.000Z&#34;,&#34;2016-01-30T00:00:00.000Z&#34;,&#34;2016-02-01T00:00:00.000Z&#34;,&#34;2016-02-02T00:00:00.000Z&#34;,&#34;2016-02-03T00:00:00.000Z&#34;,&#34;2016-02-04T00:00:00.000Z&#34;,&#34;2016-02-05T00:00:00.000Z&#34;,&#34;2016-02-08T00:00:00.000Z&#34;,&#34;2016-02-09T00:00:00.000Z&#34;,&#34;2016-02-10T00:00:00.000Z&#34;,&#34;2016-02-11T00:00:00.000Z&#34;,&#34;2016-02-12T00:00:00.000Z&#34;,&#34;2016-02-15T00:00:00.000Z&#34;,&#34;2016-02-16T00:00:00.000Z&#34;,&#34;2016-02-17T00:00:00.000Z&#34;,&#34;2016-02-18T00:00:00.000Z&#34;,&#34;2016-02-19T00:00:00.000Z&#34;,&#34;2016-02-22T00:00:00.000Z&#34;,&#34;2016-02-23T00:00:00.000Z&#34;,&#34;2016-02-24T00:00:00.000Z&#34;,&#34;2016-02-25T00:00:00.000Z&#34;,&#34;2016-02-26T00:00:00.000Z&#34;,&#34;2016-02-27T00:00:00.000Z&#34;,&#34;2016-02-29T00:00:00.000Z&#34;,&#34;2016-03-01T00:00:00.000Z&#34;,&#34;2016-03-02T00:00:00.000Z&#34;,&#34;2016-03-03T00:00:00.000Z&#34;,&#34;2016-03-04T00:00:00.000Z&#34;,&#34;2016-03-05T00:00:00.000Z&#34;,&#34;2016-03-07T00:00:00.000Z&#34;,&#34;2016-03-08T00:00:00.000Z&#34;,&#34;2016-03-09T00:00:00.000Z&#34;,&#34;2016-03-10T00:00:00.000Z&#34;,&#34;2016-03-11T00:00:00.000Z&#34;,&#34;2016-03-12T00:00:00.000Z&#34;,&#34;2016-03-13T00:00:00.000Z&#34;,&#34;2016-03-14T00:00:00.000Z&#34;,&#34;2016-03-15T00:00:00.000Z&#34;,&#34;2016-03-16T00:00:00.000Z&#34;,&#34;2016-03-17T00:00:00.000Z&#34;,&#34;2016-03-18T00:00:00.000Z&#34;,&#34;2016-03-21T00:00:00.000Z&#34;,&#34;2016-03-22T00:00:00.000Z&#34;,&#34;2016-03-28T00:00:00.000Z&#34;,&#34;2016-03-29T00:00:00.000Z&#34;,&#34;2016-03-31T00:00:00.000Z&#34;,&#34;2016-04-01T00:00:00.000Z&#34;,&#34;2016-04-03T00:00:00.000Z&#34;,&#34;2016-04-04T00:00:00.000Z&#34;,&#34;2016-04-05T00:00:00.000Z&#34;,&#34;2016-04-06T00:00:00.000Z&#34;,&#34;2016-04-07T00:00:00.000Z&#34;,&#34;2016-04-08T00:00:00.000Z&#34;,&#34;2016-04-11T00:00:00.000Z&#34;,&#34;2016-04-12T00:00:00.000Z&#34;,&#34;2016-04-14T00:00:00.000Z&#34;,&#34;2016-04-15T00:00:00.000Z&#34;,&#34;2016-04-17T00:00:00.000Z&#34;,&#34;2016-04-18T00:00:00.000Z&#34;,&#34;2016-04-19T00:00:00.000Z&#34;,&#34;2016-04-21T00:00:00.000Z&#34;,&#34;2016-04-22T00:00:00.000Z&#34;,&#34;2016-04-25T00:00:00.000Z&#34;,&#34;2016-04-26T00:00:00.000Z&#34;,&#34;2016-04-27T00:00:00.000Z&#34;,&#34;2016-04-28T00:00:00.000Z&#34;,&#34;2016-04-29T00:00:00.000Z&#34;,&#34;2016-04-30T00:00:00.000Z&#34;,&#34;2016-05-03T00:00:00.000Z&#34;,&#34;2016-05-04T00:00:00.000Z&#34;,&#34;2016-05-05T00:00:00.000Z&#34;,&#34;2016-05-06T00:00:00.000Z&#34;,&#34;2016-05-10T00:00:00.000Z&#34;,&#34;2016-05-11T00:00:00.000Z&#34;,&#34;2016-05-13T00:00:00.000Z&#34;,&#34;2016-05-14T00:00:00.000Z&#34;,&#34;2016-05-15T00:00:00.000Z&#34;,&#34;2016-05-17T00:00:00.000Z&#34;,&#34;2016-05-18T00:00:00.000Z&#34;,&#34;2016-05-19T00:00:00.000Z&#34;,&#34;2016-05-20T00:00:00.000Z&#34;,&#34;2016-05-23T00:00:00.000Z&#34;,&#34;2016-05-25T00:00:00.000Z&#34;,&#34;2016-05-26T00:00:00.000Z&#34;,&#34;2016-05-27T00:00:00.000Z&#34;,&#34;2016-05-30T00:00:00.000Z&#34;,&#34;2016-05-31T00:00:00.000Z&#34;,&#34;2016-06-02T00:00:00.000Z&#34;,&#34;2016-06-03T00:00:00.000Z&#34;,&#34;2016-06-04T00:00:00.000Z&#34;,&#34;2016-06-06T00:00:00.000Z&#34;,&#34;2016-06-07T00:00:00.000Z&#34;,&#34;2016-06-08T00:00:00.000Z&#34;,&#34;2016-06-09T00:00:00.000Z&#34;,&#34;2016-06-10T00:00:00.000Z&#34;,&#34;2016-06-11T00:00:00.000Z&#34;,&#34;2016-06-13T00:00:00.000Z&#34;,&#34;2016-06-14T00:00:00.000Z&#34;,&#34;2016-06-15T00:00:00.000Z&#34;,&#34;2016-06-16T00:00:00.000Z&#34;,&#34;2016-06-17T00:00:00.000Z&#34;,&#34;2016-06-18T00:00:00.000Z&#34;,&#34;2016-06-19T00:00:00.000Z&#34;,&#34;2016-06-20T00:00:00.000Z&#34;,&#34;2016-06-21T00:00:00.000Z&#34;,&#34;2016-06-22T00:00:00.000Z&#34;,&#34;2016-06-23T00:00:00.000Z&#34;,&#34;2016-06-28T00:00:00.000Z&#34;,&#34;2016-06-30T00:00:00.000Z&#34;,&#34;2016-07-01T00:00:00.000Z&#34;,&#34;2016-07-04T00:00:00.000Z&#34;,&#34;2016-07-05T00:00:00.000Z&#34;,&#34;2016-07-06T00:00:00.000Z&#34;,&#34;2016-07-07T00:00:00.000Z&#34;,&#34;2016-07-08T00:00:00.000Z&#34;,&#34;2016-07-10T00:00:00.000Z&#34;,&#34;2016-07-11T00:00:00.000Z&#34;,&#34;2016-07-12T00:00:00.000Z&#34;,&#34;2016-07-13T00:00:00.000Z&#34;,&#34;2016-07-14T00:00:00.000Z&#34;,&#34;2016-07-15T00:00:00.000Z&#34;,&#34;2016-07-18T00:00:00.000Z&#34;,&#34;2016-07-19T00:00:00.000Z&#34;,&#34;2016-07-20T00:00:00.000Z&#34;,&#34;2016-07-21T00:00:00.000Z&#34;,&#34;2016-07-22T00:00:00.000Z&#34;,&#34;2016-07-26T00:00:00.000Z&#34;,&#34;2016-07-27T00:00:00.000Z&#34;,&#34;2016-07-28T00:00:00.000Z&#34;,&#34;2016-07-29T00:00:00.000Z&#34;,&#34;2016-08-01T00:00:00.000Z&#34;,&#34;2016-08-02T00:00:00.000Z&#34;,&#34;2016-08-03T00:00:00.000Z&#34;,&#34;2016-08-04T00:00:00.000Z&#34;,&#34;2016-08-05T00:00:00.000Z&#34;,&#34;2016-08-08T00:00:00.000Z&#34;,&#34;2016-08-09T00:00:00.000Z&#34;,&#34;2016-08-10T00:00:00.000Z&#34;,&#34;2016-08-11T00:00:00.000Z&#34;,&#34;2016-08-12T00:00:00.000Z&#34;,&#34;2016-08-16T00:00:00.000Z&#34;,&#34;2016-08-17T00:00:00.000Z&#34;,&#34;2016-08-18T00:00:00.000Z&#34;,&#34;2016-08-19T00:00:00.000Z&#34;,&#34;2016-08-22T00:00:00.000Z&#34;,&#34;2016-08-23T00:00:00.000Z&#34;,&#34;2016-08-24T00:00:00.000Z&#34;,&#34;2016-08-25T00:00:00.000Z&#34;,&#34;2016-08-26T00:00:00.000Z&#34;,&#34;2016-08-29T00:00:00.000Z&#34;,&#34;2016-08-31T00:00:00.000Z&#34;,&#34;2016-09-01T00:00:00.000Z&#34;,&#34;2016-09-02T00:00:00.000Z&#34;,&#34;2016-09-03T00:00:00.000Z&#34;,&#34;2016-09-05T00:00:00.000Z&#34;,&#34;2016-09-06T00:00:00.000Z&#34;,&#34;2016-09-07T00:00:00.000Z&#34;,&#34;2016-09-08T00:00:00.000Z&#34;,&#34;2016-09-09T00:00:00.000Z&#34;,&#34;2016-09-12T00:00:00.000Z&#34;,&#34;2016-09-13T00:00:00.000Z&#34;,&#34;2016-09-14T00:00:00.000Z&#34;,&#34;2016-09-15T00:00:00.000Z&#34;,&#34;2016-09-19T00:00:00.000Z&#34;,&#34;2016-09-21T00:00:00.000Z&#34;,&#34;2016-09-22T00:00:00.000Z&#34;,&#34;2016-09-23T00:00:00.000Z&#34;,&#34;2016-09-26T00:00:00.000Z&#34;,&#34;2016-09-27T00:00:00.000Z&#34;,&#34;2016-09-28T00:00:00.000Z&#34;,&#34;2016-09-29T00:00:00.000Z&#34;,&#34;2016-09-30T00:00:00.000Z&#34;,&#34;2016-10-01T00:00:00.000Z&#34;,&#34;2016-10-03T00:00:00.000Z&#34;,&#34;2016-10-04T00:00:00.000Z&#34;,&#34;2016-10-05T00:00:00.000Z&#34;,&#34;2016-10-06T00:00:00.000Z&#34;,&#34;2016-10-07T00:00:00.000Z&#34;,&#34;2016-10-10T00:00:00.000Z&#34;,&#34;2016-10-11T00:00:00.000Z&#34;,&#34;2016-10-13T00:00:00.000Z&#34;,&#34;2016-10-14T00:00:00.000Z&#34;,&#34;2016-10-16T00:00:00.000Z&#34;,&#34;2016-10-17T00:00:00.000Z&#34;,&#34;2016-10-18T00:00:00.000Z&#34;,&#34;2016-10-19T00:00:00.000Z&#34;,&#34;2016-10-20T00:00:00.000Z&#34;,&#34;2016-10-21T00:00:00.000Z&#34;,&#34;2016-10-22T00:00:00.000Z&#34;,&#34;2016-10-25T00:00:00.000Z&#34;,&#34;2016-10-26T00:00:00.000Z&#34;,&#34;2016-10-29T00:00:00.000Z&#34;,&#34;2016-10-31T00:00:00.000Z&#34;,&#34;2016-11-02T00:00:00.000Z&#34;,&#34;2016-11-03T00:00:00.000Z&#34;,&#34;2016-11-04T00:00:00.000Z&#34;,&#34;2016-11-05T00:00:00.000Z&#34;,&#34;2016-11-07T00:00:00.000Z&#34;,&#34;2016-11-08T00:00:00.000Z&#34;,&#34;2016-11-10T00:00:00.000Z&#34;,&#34;2016-11-11T00:00:00.000Z&#34;,&#34;2016-11-12T00:00:00.000Z&#34;,&#34;2016-11-14T00:00:00.000Z&#34;,&#34;2016-11-15T00:00:00.000Z&#34;,&#34;2016-11-16T00:00:00.000Z&#34;,&#34;2016-11-17T00:00:00.000Z&#34;,&#34;2016-11-18T00:00:00.000Z&#34;,&#34;2016-11-21T00:00:00.000Z&#34;,&#34;2016-11-22T00:00:00.000Z&#34;,&#34;2016-11-24T00:00:00.000Z&#34;,&#34;2016-11-28T00:00:00.000Z&#34;,&#34;2016-11-29T00:00:00.000Z&#34;,&#34;2016-11-30T00:00:00.000Z&#34;,&#34;2016-12-01T00:00:00.000Z&#34;,&#34;2016-12-02T00:00:00.000Z&#34;,&#34;2016-12-03T00:00:00.000Z&#34;,&#34;2016-12-04T00:00:00.000Z&#34;,&#34;2016-12-05T00:00:00.000Z&#34;,&#34;2016-12-07T00:00:00.000Z&#34;,&#34;2016-12-09T00:00:00.000Z&#34;,&#34;2016-12-10T00:00:00.000Z&#34;,&#34;2016-12-12T00:00:00.000Z&#34;,&#34;2016-12-13T00:00:00.000Z&#34;,&#34;2016-12-14T00:00:00.000Z&#34;,&#34;2016-12-15T00:00:00.000Z&#34;,&#34;2016-12-16T00:00:00.000Z&#34;,&#34;2016-12-17T00:00:00.000Z&#34;,&#34;2016-12-19T00:00:00.000Z&#34;,&#34;2016-12-20T00:00:00.000Z&#34;,&#34;2016-12-21T00:00:00.000Z&#34;,&#34;2016-12-22T00:00:00.000Z&#34;,&#34;2016-12-23T00:00:00.000Z&#34;,&#34;2016-12-27T00:00:00.000Z&#34;,&#34;2016-12-28T00:00:00.000Z&#34;,&#34;2016-12-29T00:00:00.000Z&#34;,&#34;2016-12-30T00:00:00.000Z&#34;,&#34;2017-01-02T00:00:00.000Z&#34;,&#34;2017-01-03T00:00:00.000Z&#34;,&#34;2017-01-04T00:00:00.000Z&#34;,&#34;2017-01-05T00:00:00.000Z&#34;,&#34;2017-01-07T00:00:00.000Z&#34;,&#34;2017-01-09T00:00:00.000Z&#34;,&#34;2017-01-10T00:00:00.000Z&#34;,&#34;2017-01-11T00:00:00.000Z&#34;,&#34;2017-01-12T00:00:00.000Z&#34;,&#34;2017-01-13T00:00:00.000Z&#34;,&#34;2017-01-15T00:00:00.000Z&#34;,&#34;2017-01-16T00:00:00.000Z&#34;,&#34;2017-01-18T00:00:00.000Z&#34;,&#34;2017-01-20T00:00:00.000Z&#34;,&#34;2017-01-21T00:00:00.000Z&#34;,&#34;2017-01-22T00:00:00.000Z&#34;,&#34;2017-01-23T00:00:00.000Z&#34;,&#34;2017-01-24T00:00:00.000Z&#34;,&#34;2017-01-25T00:00:00.000Z&#34;,&#34;2017-01-26T00:00:00.000Z&#34;,&#34;2017-01-27T00:00:00.000Z&#34;,&#34;2017-01-30T00:00:00.000Z&#34;,&#34;2017-01-31T00:00:00.000Z&#34;,&#34;2017-02-01T00:00:00.000Z&#34;,&#34;2017-02-02T00:00:00.000Z&#34;,&#34;2017-02-03T00:00:00.000Z&#34;,&#34;2017-02-04T00:00:00.000Z&#34;,&#34;2017-02-06T00:00:00.000Z&#34;,&#34;2017-02-07T00:00:00.000Z&#34;,&#34;2017-02-08T00:00:00.000Z&#34;,&#34;2017-02-09T00:00:00.000Z&#34;,&#34;2017-02-10T00:00:00.000Z&#34;,&#34;2017-02-13T00:00:00.000Z&#34;,&#34;2017-02-14T00:00:00.000Z&#34;,&#34;2017-02-15T00:00:00.000Z&#34;,&#34;2017-02-16T00:00:00.000Z&#34;,&#34;2017-02-17T00:00:00.000Z&#34;,&#34;2017-02-18T00:00:00.000Z&#34;,&#34;2017-02-20T00:00:00.000Z&#34;,&#34;2017-02-21T00:00:00.000Z&#34;,&#34;2017-02-22T00:00:00.000Z&#34;,&#34;2017-02-23T00:00:00.000Z&#34;,&#34;2017-02-24T00:00:00.000Z&#34;,&#34;2017-02-25T00:00:00.000Z&#34;,&#34;2017-02-26T00:00:00.000Z&#34;,&#34;2017-02-27T00:00:00.000Z&#34;,&#34;2017-02-28T00:00:00.000Z&#34;,&#34;2017-03-01T00:00:00.000Z&#34;,&#34;2017-03-02T00:00:00.000Z&#34;,&#34;2017-03-03T00:00:00.000Z&#34;,&#34;2017-03-06T00:00:00.000Z&#34;,&#34;2017-03-07T00:00:00.000Z&#34;,&#34;2017-03-08T00:00:00.000Z&#34;,&#34;2017-03-09T00:00:00.000Z&#34;,&#34;2017-03-14T00:00:00.000Z&#34;,&#34;2017-03-15T00:00:00.000Z&#34;,&#34;2017-03-16T00:00:00.000Z&#34;,&#34;2017-03-17T00:00:00.000Z&#34;,&#34;2017-03-21T00:00:00.000Z&#34;,&#34;2017-03-23T00:00:00.000Z&#34;,&#34;2017-03-24T00:00:00.000Z&#34;,&#34;2017-03-27T00:00:00.000Z&#34;,&#34;2017-03-28T00:00:00.000Z&#34;,&#34;2017-03-29T00:00:00.000Z&#34;,&#34;2017-03-31T00:00:00.000Z&#34;,&#34;2017-04-01T00:00:00.000Z&#34;,&#34;2017-04-02T00:00:00.000Z&#34;,&#34;2017-04-03T00:00:00.000Z&#34;,&#34;2017-04-04T00:00:00.000Z&#34;,&#34;2017-04-05T00:00:00.000Z&#34;,&#34;2017-04-06T00:00:00.000Z&#34;,&#34;2017-04-07T00:00:00.000Z&#34;,&#34;2017-04-08T00:00:00.000Z&#34;,&#34;2017-04-09T00:00:00.000Z&#34;,&#34;2017-04-10T00:00:00.000Z&#34;,&#34;2017-04-11T00:00:00.000Z&#34;,&#34;2017-04-12T00:00:00.000Z&#34;,&#34;2017-04-15T00:00:00.000Z&#34;,&#34;2017-04-16T00:00:00.000Z&#34;,&#34;2017-04-17T00:00:00.000Z&#34;,&#34;2017-04-18T00:00:00.000Z&#34;,&#34;2017-04-19T00:00:00.000Z&#34;,&#34;2017-04-20T00:00:00.000Z&#34;,&#34;2017-04-21T00:00:00.000Z&#34;,&#34;2017-04-24T00:00:00.000Z&#34;,&#34;2017-04-25T00:00:00.000Z&#34;,&#34;2017-04-26T00:00:00.000Z&#34;,&#34;2017-04-27T00:00:00.000Z&#34;,&#34;2017-04-28T00:00:00.000Z&#34;,&#34;2017-04-29T00:00:00.000Z&#34;,&#34;2017-05-03T00:00:00.000Z&#34;,&#34;2017-05-04T00:00:00.000Z&#34;,&#34;2017-05-05T00:00:00.000Z&#34;,&#34;2017-05-08T00:00:00.000Z&#34;,&#34;2017-05-09T00:00:00.000Z&#34;,&#34;2017-05-10T00:00:00.000Z&#34;,&#34;2017-05-11T00:00:00.000Z&#34;,&#34;2017-05-12T00:00:00.000Z&#34;,&#34;2017-05-13T00:00:00.000Z&#34;,&#34;2017-05-14T00:00:00.000Z&#34;,&#34;2017-05-16T00:00:00.000Z&#34;,&#34;2017-05-17T00:00:00.000Z&#34;,&#34;2017-05-18T00:00:00.000Z&#34;,&#34;2017-05-19T00:00:00.000Z&#34;,&#34;2017-05-20T00:00:00.000Z&#34;,&#34;2017-05-22T00:00:00.000Z&#34;,&#34;2017-05-23T00:00:00.000Z&#34;,&#34;2017-05-25T00:00:00.000Z&#34;,&#34;2017-05-26T00:00:00.000Z&#34;,&#34;2017-05-29T00:00:00.000Z&#34;,&#34;2017-05-30T00:00:00.000Z&#34;,&#34;2017-05-31T00:00:00.000Z&#34;,&#34;2017-06-02T00:00:00.000Z&#34;,&#34;2017-06-05T00:00:00.000Z&#34;,&#34;2017-06-06T00:00:00.000Z&#34;,&#34;2017-06-07T00:00:00.000Z&#34;,&#34;2017-06-08T00:00:00.000Z&#34;,&#34;2017-06-09T00:00:00.000Z&#34;,&#34;2017-06-12T00:00:00.000Z&#34;,&#34;2017-06-13T00:00:00.000Z&#34;,&#34;2017-06-14T00:00:00.000Z&#34;,&#34;2017-06-15T00:00:00.000Z&#34;,&#34;2017-06-16T00:00:00.000Z&#34;,&#34;2017-06-17T00:00:00.000Z&#34;,&#34;2017-06-18T00:00:00.000Z&#34;,&#34;2017-06-19T00:00:00.000Z&#34;,&#34;2017-06-20T00:00:00.000Z&#34;,&#34;2017-06-21T00:00:00.000Z&#34;,&#34;2017-06-22T00:00:00.000Z&#34;,&#34;2017-06-23T00:00:00.000Z&#34;,&#34;2017-06-24T00:00:00.000Z&#34;,&#34;2017-06-26T00:00:00.000Z&#34;,&#34;2017-06-27T00:00:00.000Z&#34;,&#34;2017-06-28T00:00:00.000Z&#34;,&#34;2017-06-29T00:00:00.000Z&#34;,&#34;2017-06-30T00:00:00.000Z&#34;,&#34;2017-07-01T00:00:00.000Z&#34;,&#34;2017-07-02T00:00:00.000Z&#34;,&#34;2017-07-03T00:00:00.000Z&#34;,&#34;2017-07-04T00:00:00.000Z&#34;,&#34;2017-07-05T00:00:00.000Z&#34;,&#34;2017-07-07T00:00:00.000Z&#34;,&#34;2017-07-10T00:00:00.000Z&#34;,&#34;2017-07-11T00:00:00.000Z&#34;,&#34;2017-07-13T00:00:00.000Z&#34;,&#34;2017-07-14T00:00:00.000Z&#34;,&#34;2017-07-15T00:00:00.000Z&#34;,&#34;2017-07-17T00:00:00.000Z&#34;,&#34;2017-07-18T00:00:00.000Z&#34;,&#34;2017-07-19T00:00:00.000Z&#34;,&#34;2017-07-20T00:00:00.000Z&#34;,&#34;2017-07-21T00:00:00.000Z&#34;,&#34;2017-07-24T00:00:00.000Z&#34;,&#34;2017-07-25T00:00:00.000Z&#34;,&#34;2017-07-26T00:00:00.000Z&#34;,&#34;2017-07-27T00:00:00.000Z&#34;,&#34;2017-07-28T00:00:00.000Z&#34;,&#34;2017-07-31T00:00:00.000Z&#34;,&#34;2017-08-01T00:00:00.000Z&#34;,&#34;2017-08-02T00:00:00.000Z&#34;,&#34;2017-08-03T00:00:00.000Z&#34;,&#34;2017-08-04T00:00:00.000Z&#34;,&#34;2017-08-07T00:00:00.000Z&#34;,&#34;2017-08-08T00:00:00.000Z&#34;,&#34;2017-08-09T00:00:00.000Z&#34;,&#34;2017-08-10T00:00:00.000Z&#34;,&#34;2017-08-11T00:00:00.000Z&#34;,&#34;2017-08-14T00:00:00.000Z&#34;,&#34;2017-08-16T00:00:00.000Z&#34;,&#34;2017-08-17T00:00:00.000Z&#34;,&#34;2017-08-18T00:00:00.000Z&#34;,&#34;2017-08-21T00:00:00.000Z&#34;,&#34;2017-08-22T00:00:00.000Z&#34;,&#34;2017-08-23T00:00:00.000Z&#34;,&#34;2017-08-24T00:00:00.000Z&#34;,&#34;2017-08-25T00:00:00.000Z&#34;,&#34;2017-08-28T00:00:00.000Z&#34;,&#34;2017-08-29T00:00:00.000Z&#34;,&#34;2017-08-30T00:00:00.000Z&#34;,&#34;2017-08-31T00:00:00.000Z&#34;,&#34;2017-09-01T00:00:00.000Z&#34;,&#34;2017-09-04T00:00:00.000Z&#34;,&#34;2017-09-05T00:00:00.000Z&#34;,&#34;2017-09-06T00:00:00.000Z&#34;,&#34;2017-09-07T00:00:00.000Z&#34;,&#34;2017-09-08T00:00:00.000Z&#34;,&#34;2017-09-11T00:00:00.000Z&#34;,&#34;2017-09-12T00:00:00.000Z&#34;,&#34;2017-09-13T00:00:00.000Z&#34;,&#34;2017-09-14T00:00:00.000Z&#34;,&#34;2017-09-15T00:00:00.000Z&#34;,&#34;2017-09-18T00:00:00.000Z&#34;,&#34;2017-09-19T00:00:00.000Z&#34;,&#34;2017-09-20T00:00:00.000Z&#34;,&#34;2017-09-21T00:00:00.000Z&#34;,&#34;2017-09-22T00:00:00.000Z&#34;,&#34;2017-09-24T00:00:00.000Z&#34;,&#34;2017-09-26T00:00:00.000Z&#34;,&#34;2017-09-27T00:00:00.000Z&#34;,&#34;2017-09-28T00:00:00.000Z&#34;,&#34;2017-09-29T00:00:00.000Z&#34;,&#34;2017-10-02T00:00:00.000Z&#34;,&#34;2017-10-03T00:00:00.000Z&#34;,&#34;2017-10-04T00:00:00.000Z&#34;,&#34;2017-10-05T00:00:00.000Z&#34;,&#34;2017-10-06T00:00:00.000Z&#34;,&#34;2017-10-07T00:00:00.000Z&#34;,&#34;2017-10-08T00:00:00.000Z&#34;,&#34;2017-10-09T00:00:00.000Z&#34;,&#34;2017-10-10T00:00:00.000Z&#34;,&#34;2017-10-11T00:00:00.000Z&#34;,&#34;2017-10-16T00:00:00.000Z&#34;,&#34;2017-10-17T00:00:00.000Z&#34;,&#34;2017-10-18T00:00:00.000Z&#34;,&#34;2017-10-19T00:00:00.000Z&#34;,&#34;2017-10-20T00:00:00.000Z&#34;,&#34;2017-10-22T00:00:00.000Z&#34;,&#34;2017-10-23T00:00:00.000Z&#34;,&#34;2017-10-24T00:00:00.000Z&#34;,&#34;2017-10-25T00:00:00.000Z&#34;,&#34;2017-10-26T00:00:00.000Z&#34;,&#34;2017-10-27T00:00:00.000Z&#34;,&#34;2017-10-29T00:00:00.000Z&#34;,&#34;2017-10-30T00:00:00.000Z&#34;,&#34;2017-10-31T00:00:00.000Z&#34;],[2,3,4,1,5,3,1,1,1,1,2,3,1,1,3,4,2,1,1,3,1,4,4,1,4,1,5,1,7,3,5,2,4,2,2,6,4,4,4,1,1,4,3,1,2,6,4,5,7,2,7,9,1,3,5,2,4,2,1,2,3,4,14,10,3,1,1,5,3,3,2,3,5,6,3,5,5,5,4,6,4,6,2,3,3,4,4,3,3,8,4,4,3,5,2,2,5,2,1,2,2,7,4,3,3,9,4,5,1,6,8,9,6,5,2,9,5,3,2,7,4,3,11,3,2,2,9,3,2,9,1,2,2,2,4,4,5,3,1,1,5,5,1,1,1,6,9,2,1,2,4,4,3,10,4,2,1,1,1,6,1,5,6,2,2,5,1,1,1,2,3,5,8,6,5,3,5,3,3,1,8,3,6,2,2,11,18,4,4,3,3,1,1,1,5,2,6,3,3,1,3,6,5,3,5,2,4,2,2,1,2,2,2,7,9,4,4,3,2,5,2,2,5,9,3,1,1,4,1,6,8,5,1,4,1,4,1,3,1,9,5,10,2,7,1,4,2,1,2,3,2,1,1,1,1,5,8,1,6,1,2,3,5,2,1,1,1,3,1,5,4,6,5,9,9,1,9,8,10,9,3,1,9,7,9,5,8,2,12,12,14,14,4,6,2,8,3,5,5,1,11,5,4,4,6,6,9,5,3,2,4,1,3,6,7,3,4,1,6,3,4,1,1,7,4,2,7,5,3,2,11,11,6,1,5,2,3,3,3,5,11,12,6,3,3,8,4,8,3,2,2,1,2,3,3,2,3,1,2,1,1,1,3,1,8,11,5,12,4,2,1,2,8,1,15,1,2,5,13,2,7,8,9,1,6,1,3,1,2,1,3,1,1,7,1,12,1,9,2,7,6,8,3,8,6,2,4,3,2,2,5,1,5,4,9,4,1,1,1,12,6,2,3,4,3,3,7,4,6,13,7,1,7,5,4,12,7,8,6,5,11,1,4,7,5,1,11,6,11,4,8,14,7,1,4,1,2,2,2,8,11,3,2,2,4,5,2,2,1,1,2,1,3,10,7,5,1,10,3,1,6,1,1,12,9,1,3,8,1,5,10,2,7,4,2,5,7,3,1,3,1,2,4,9,1,1,1,2,2,7,4,7,1,1,6,4,1,1,4,1,7,2,3,5,6,4,2,4,13,52,49,2,1,44,29,15,1,7,17,15,14,15,3,15,11,16,9,8,20,20,7,9,6,6,5,4,1,17,13,13,3,2,1,2,3,5,4,1,15,7,1,6,14,5,4,3,5,8,1,7,10,6,6,1,2,4,2,5,9,1,7,1,2,8,13,3,1,10,7,2,7,5,2,5,12,4,2,2,1,6,15,7,16,6,6,8,6,1,2,8,14,5,6,9,1,1,10,5,7,2,2,6,4,14,18,35,14,22,14,17,11,1,12,14,6,12,7,9,12,19,4,2,22,8,13,4,1,1,13,4,13,13,6,12,10,5,6,2,2,5,2,6,10,2,5,1,1,2,5,2,3,9,1,4,6,4,5,1,1,1,6,6,6,6,3,3,5,11,3,6,7,6,8,2,6,2,7,14,6,10,6,8,8,9,9,7,4,8,12,5,12,7,1,7,3,3,11,1,4,1,1,7,5,8,3,3,1,1,3,5,3,3,10,5,3,4,11,10,1,5,5,1,8,7,3,5,4,6,1,1,8,4,6,9,10,2,2,1,1,5,17,4,11,1,1,3,11]],&#34;fixedtz&#34;:false,&#34;tzone&#34;:&#34;UTC&#34;},&#34;evals&#34;:[&#34;attrs.interactionModel&#34;],&#34;jsHooks&#34;:[]}&lt;/script&gt;
+&lt;p&gt;Finally another fact, who is the most borrowed author in Madrid public libraries? Dedicated to my 7 years old son.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;top.autores &amp;lt;- rawdata.df %&amp;gt;% dplyr::filter(autor!=&amp;quot;&amp;quot;) %&amp;gt;% group_by(autor) %&amp;gt;% summarise(total=100*n()/nrow(rawdata.df)) %&amp;gt;% arrange(-total)
+head(top.autores)&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;## # A tibble: 6 x 2
+##               autor     total
+##               &amp;lt;chr&amp;gt;     &amp;lt;dbl&amp;gt;
+## 1 Stilton, Geronimo 1.5344535
+## 2      Stilton, Tea 0.4415608
+## 3      Kinney, Jeff 0.4290774
+## 4    Denou, Violeta 0.4264427
+## 5           Bat Pat 0.3638376
+## 6   Ibáñez, F.1936- 0.3617047&lt;/code&gt;&lt;/pre&gt;
+</description>
     </item>
     
     <item>
       <title>Scrapping BOE in search of post election designations</title>
-      <link>https://rafaelmenmell.netlify.com/2018/09/26/scrapping-boe-in-search-of-post-election-designations/</link>
+      <link>/2018/09/26/scrapping-boe-in-search-of-post-election-designations/</link>
       <pubDate>Wed, 26 Sep 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/09/26/scrapping-boe-in-search-of-post-election-designations/</guid>
-      <description>Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of dessignations in the highest levels of administration.
-I want to quantify this by counting the dessignations and cessations published in BOE (Official State Gazette) with R.
-suppressPackageStartupMessages(library(XML)) suppressPackageStartupMessages(library(ggplot2)) suppressPackageStartupMessages(library(dplyr)) CuentaNombramientos &amp;lt;- function(fecha){ path &amp;lt;- sprintf(&amp;quot;https://boe.es/diario_boe/xml.php?id=BOE-S-%s&amp;quot;,fecha) resumen_boe_xml &amp;lt;- XML::xmlParse(file = readLines(path)) top &amp;lt;- xmlRoot(resumen_boe_xml) if (xmlValue(top[[1]][[1]])!</description>
-    </item>
-    
-    <item>
-      <title>About</title>
-      <link>https://rafaelmenmell.netlify.com/about/</link>
-      <pubDate>Thu, 05 May 2016 21:48:51 -0700</pubDate>
-      
-      <guid>/about/</guid>
-      <description>My name is Rafael Menéndez, almost 40 yo., father of two, forestry engineer, data analyst at Meteologica. Assorted interests: archeology, non-fiction literature, meteorology, ancient history, R, coding and much more.</description>
+      <description>
+
+
+&lt;p&gt;Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of dessignations in the highest levels of administration.&lt;/p&gt;
+&lt;p&gt;I want to quantify this by counting the dessignations and cessations published in &lt;a href=&#34;www.boe.es&#34;&gt;BOE&lt;/a&gt; (Official State Gazette) with R.&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;suppressPackageStartupMessages(library(XML))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(dplyr))
+
+CuentaNombramientos &amp;lt;- function(fecha){
+  path &amp;lt;- sprintf(&amp;quot;https://boe.es/diario_boe/xml.php?id=BOE-S-%s&amp;quot;,fecha)
+  resumen_boe_xml &amp;lt;- XML::xmlParse(file = readLines(path))
+  top &amp;lt;- xmlRoot(resumen_boe_xml)
+  if (xmlValue(top[[1]][[1]])!=&amp;quot;No se encontró el sumario original.&amp;quot;){
+    nombramientos &amp;lt;- getNodeSet(top[[2]],&amp;quot;//diario//seccion[@num=&amp;#39;2A&amp;#39;]//departamento[@nombre!=&amp;#39;UNIVERSIDADES&amp;#39;]//epigrafe[@nombre=&amp;#39;Nombramientos&amp;#39;]//item&amp;quot;)
+    ceses &amp;lt;- getNodeSet(top[[2]],&amp;quot;//diario//seccion[@num=&amp;#39;2A&amp;#39;]//departamento[@nombre!=&amp;#39;UNIVERSIDADES&amp;#39;]//epigrafe[@nombre=&amp;#39;Ceses&amp;#39;]//item&amp;quot;)
+    return(list(nombramientos=length(nombramientos),ceses=length(ceses))) 
+  } else {
+    return(list(nombramientos=0,ceses=0))
+  }
+}
+
+fechas &amp;lt;- as.character(seq(from=as.Date(&amp;quot;2010-01-01&amp;quot;),to=Sys.Date(),by=&amp;quot;1 day&amp;quot;),format=&amp;quot;%Y%m%d&amp;quot;)
+nombramientos &amp;lt;- data.frame(fecha=fechas,nombramientos=NA,ceses=NA)
+l.resultados &amp;lt;- purrr::map(nombramientos$fecha,CuentaNombramientos)
+nombramientos$nombramientos &amp;lt;- bind_rows(l.resultados)$nombramientos
+nombramientos$ceses &amp;lt;- bind_rows(l.resultados)$ceses
+nombramientos$fecha &amp;lt;- as.Date(nombramientos$fecha,format=&amp;quot;%Y%m%d&amp;quot;)
+nomb.mes &amp;lt;- nombramientos %&amp;gt;% dplyr::group_by(fecha=format(fecha,&amp;quot;%Y-%m&amp;quot;)) %&amp;gt;% dplyr::summarise(dessignations=sum(nombramientos),cessations=-1*sum(ceses)) %&amp;gt;% dplyr::mutate(year=substr(fecha,1,4),mes=substr(fecha,6,7)) %&amp;gt;% tidyr::gather(key=&amp;quot;acto&amp;quot;,value=&amp;quot;total&amp;quot;,2:3)
+g &amp;lt;- ggplot(nomb.mes) + geom_bar(aes(x=mes,y=total,fill=acto,group=acto),stat=&amp;quot;identity&amp;quot;) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ylab(&amp;quot;Total dessignations and cessations&amp;quot;) + facet_grid(year~.) + labs(caption=&amp;quot;Source: BOE&amp;quot;) + xlab(&amp;quot;month&amp;quot;)
+
+plot(g)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&#34;/post/2018-09-26-scrapping-boe-in-search-of-post-election-designations_files/figure-html/boe-1.png&#34; width=&#34;768&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;As can be seen two of these &lt;em&gt;administration earthquakes&lt;/em&gt; ocurred in this decade, the first after general elections of 26th November 2011 when Mariano Rajoy (PP, conservative) swept out José Luis Rodríguez Zapatero (PSOE, progressive). The last one was just a few months ago when Mariano Rajoy was defeated in a motion of no confidence and removed from goverment.&lt;/p&gt;
+&lt;p&gt;This one change in spanish administration lead to four months of frantic activity of dessignatios and cessetions, with june 2018 as the most active month in this decade.&lt;/p&gt;
+</description>
     </item>
     
   </channel>
