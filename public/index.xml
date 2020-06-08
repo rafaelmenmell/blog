@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Assorted things</title>
@@ -5,10 +6,74 @@
     <description>Recent content on Assorted things</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 23 Jan 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 08 Jun 2020 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Building a search page over large documente dataset based in elasticsearch</title>
+      <link>/2020/06/08/building-a-search-page-over-large-documente-dataset-based-in-elasticsearch/</link>
+      <pubDate>Mon, 08 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/2020/06/08/building-a-search-page-over-large-documente-dataset-based-in-elasticsearch/</guid>
+      <description>&lt;p&gt;During these weeks of lockdown everyone in data science has been looking for some dataset to play around. In my particular case I found ParlSpeech V2 &lt;a href=&#34;#fn1&#34; class=&#34;footnote-ref&#34; id=&#34;fnref1&#34;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/a&gt;. ParlSpeech V2 contains complete full-text vectors of more than 6.3 million parliamentary speeches in the key legislative chambers of Austria, the Czech Republic, Germany, Denmark, the Netherlands, New Zealand, Spain, Sweden, and the United Kingdom, covering periods between 21 and 32 years. Meta-data include information on date, speaker, party, and partially agenda item under which a speech was held. The accompanying release note provides a more detailed guide to the data.&lt;/p&gt;
+&lt;p&gt;This dataset reminded me of &lt;a href=&#34;https://verba.civio.es/&#34;&gt;&lt;em&gt;&lt;em&gt;VERBA VOLANT&lt;/em&gt;&lt;/em&gt;&lt;/a&gt; from Civio, in this beatufil data visualization you can search words in the a dataset containing the news broadcasted in TVE, the spanish public television.&lt;/p&gt;
+&lt;p&gt;Then I thought about doing something similar and in their public repository I found out that they used &lt;a href=&#34;https://www.elastic.co/es/&#34;&gt;&lt;em&gt;&lt;em&gt;Elastic&lt;/em&gt;&lt;/em&gt;&lt;/a&gt;, &lt;em&gt;&lt;em&gt;Elastic&lt;/em&gt;&lt;/em&gt; is an open source engine for documental texts. &lt;em&gt;&lt;em&gt;Elastic&lt;/em&gt;&lt;/em&gt; offers their own cloud service (free during the first 14 days). So I decided to get my hands dirty with &lt;em&gt;&lt;em&gt;Elastic&lt;/em&gt;&lt;/em&gt; and &lt;em&gt;&lt;em&gt;R&lt;/em&gt;&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;Once I set up my own &lt;em&gt;&lt;em&gt;Elastic Cloud&lt;/em&gt;&lt;/em&gt; account, I populated it using &lt;em&gt;elastic&lt;/em&gt; package in R&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;discursos &amp;lt;- readRDS(&amp;quot;Corp_Congreso_V2.rds&amp;quot;)
+x &amp;lt;- connect(host = &amp;quot;4fa108dc0e82435d94e6b71b7723d0be.uksouth.azure.elastic-cloud.com&amp;quot;,port = 9243,user = &amp;quot;elastic&amp;quot;,pwd = &amp;quot;*****************&amp;quot;,transport_schema = &amp;quot;https&amp;quot;)
+docs_bulk(x,discursos,index = &amp;quot;speechnumber&amp;quot;)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;And build a very simple shiny application with elastic capacities (so simple that it´s basically stripped off)&lt;/p&gt;
+&lt;p&gt;ui.R&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(elastic)
+library(dplyr)
+host &amp;lt;- &amp;quot;4fa108dc0e82435d94e6b71b7723d0be.uksouth.azure.elastic-cloud.com&amp;quot;
+port &amp;lt;- 9243
+usuario &amp;lt;- &amp;quot;elastic&amp;quot;
+password &amp;lt;- &amp;quot;**************************&amp;quot;
+x &amp;lt;- connect(host = host,port = port,user = usuario,pwd = password,transport_schema = &amp;quot;https&amp;quot;)
+
+# Define UI for application that draws a histogram
+shinyUI(fluidPage(
+
+    # Application title
+    titlePanel(&amp;quot;Buscador de términos en discursos del Congreso de los Diputados usando elastic&amp;quot;),
+
+    # Sidebar with a slider input for number of bins
+    textInput(&amp;quot;termino&amp;quot;, &amp;quot;Buscar&amp;quot;, value = &amp;quot;&amp;quot;),
+    dataTableOutput(&amp;#39;table&amp;#39;)
+))&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;server.R&lt;/p&gt;
+&lt;pre class=&#34;r&#34;&gt;&lt;code&gt;library(shiny)
+library(DT)
+
+# Define server logic required to draw a histogram
+shinyServer(function(input, output) {
+    
+    output$table &amp;lt;- renderDataTable({
+        # if(input$termino!=&amp;quot;&amp;quot;){
+            res &amp;lt;- elastic::Search(conn = x,index = &amp;quot;speechnumber&amp;quot;,q = sprintf(&amp;quot;text:%s&amp;quot;,input$termino),source=c(&amp;quot;speaker&amp;quot;,&amp;quot;date&amp;quot;,&amp;quot;text&amp;quot;),asdf = TRUE,size = 10000)
+        # } else {
+            #res &amp;lt;- elastic::Search(conn = x,index = &amp;quot;speechnumber&amp;quot;,q = &amp;quot;text:*&amp;quot;,source=c(&amp;quot;speaker&amp;quot;,&amp;quot;date&amp;quot;,&amp;quot;text&amp;quot;),asdf = TRUE)
+        # }
+        df &amp;lt;- res$hits$hits
+        df &amp;lt;- df %&amp;gt;% dplyr::select(starts_with(&amp;quot;_source&amp;quot;))
+        colnames(df) &amp;lt;- gsub(pattern = &amp;quot;_source.&amp;quot;,replacement = &amp;quot;&amp;quot;,x = colnames(df))
+        df
+        })
+    
+})&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;I’ve deployed my (very simple) application to &lt;a href=&#34;https://rafaelmenmell.shinyapps.io/politikon/&#34;&gt;shinyapps, you can find it here&lt;/a&gt;. I think &lt;em&gt;&lt;em&gt;Elastic&lt;/em&gt;&lt;/em&gt;
+and &lt;em&gt;&lt;em&gt;Kibana&lt;/em&gt;&lt;/em&gt; are amazing tools and I’ve enjoyed the time I’ve spent learning a little bit of them.&lt;/p&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id=&#34;fn1&#34;&gt;&lt;p&gt;Rauh, Christian; Schwalbach, Jan, 2020, “The ParlSpeech V2 data set: Full-text corpora of 6.3 million parliamentary speeches in the key legislative chambers of nine representative democracies”, &lt;a href=&#34;https://doi.org/10.7910/DVN/L4OAKN&#34; class=&#34;uri&#34;&gt;https://doi.org/10.7910/DVN/L4OAKN&lt;/a&gt;, Harvard Dataverse, V1&lt;a href=&#34;#fnref1&#34; class=&#34;footnote-back&#34;&gt;↩&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+</description>
+    </item>
     
     <item>
       <title>Using R to solve old solitaire</title>
@@ -16,10 +81,7 @@
       <pubDate>Thu, 23 Jan 2020 00:00:00 +0000</pubDate>
       
       <guid>/2020/01/23/using-r-to-solve-old-solitaire/</guid>
-      <description>
-
-
-&lt;p&gt;There is an old solitaire I started to play when I was in high school, when classes became too boring. I don’t know if it has a name or if I invited it &lt;em&gt;ex nihilo&lt;/em&gt;.
+      <description>&lt;p&gt;There is an old solitaire I started to play when I was in high school, when classes became too boring. I don’t know if it has a name or if I invited it &lt;em&gt;ex nihilo&lt;/em&gt;.
 These are the rules:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;It begins with an empty 10x10 matrix&lt;/li&gt;
@@ -257,10 +319,7 @@ But decomposing the problem in more manageable parts it’s allways a good pract
       <pubDate>Wed, 28 Aug 2019 00:00:00 +0000</pubDate>
       
       <guid>/2019/08/28/how-tennis-has-changed-over-time/</guid>
-      <description>
-
-
-&lt;p&gt;During the last years I have become a huge fan of tennis (both, on court and in TV). This year I followed (in TV) with attention Roland Garros and Wimbledon.&lt;/p&gt;
+      <description>&lt;p&gt;During the last years I have become a huge fan of tennis (both, on court and in TV). This year I followed (in TV) with attention Roland Garros and Wimbledon.&lt;/p&gt;
 &lt;p&gt;Although clay and grass are very different surfaces I’ve found the game very similar. What happened with the serve-volley game? I think it is my duty (as data freak) to found some data and play around with it.&lt;/p&gt;
 &lt;p&gt;To my delight I found &lt;a href=&#34;https://github.com/JeffSackmann/tennis_MatchChartingProject&#34;&gt;The Match Charting Project&lt;/a&gt; by &lt;a href=&#34;http://www.jeffsackmann.com/&#34;&gt;Jeff Sackman&lt;/a&gt;, standing ovation for this amazing project.&lt;/p&gt;
 &lt;p&gt;So, I’ve done some code to find out.&lt;/p&gt;
@@ -384,10 +443,7 @@ plot(g4)&lt;/code&gt;&lt;/pre&gt;
       <pubDate>Thu, 14 Feb 2019 00:00:00 +0000</pubDate>
       
       <guid>/2019/02/14/are-pollen-forecast-good-enough/</guid>
-      <description>
-
-
-&lt;div id=&#34;introduction&#34; class=&#34;section level2&#34;&gt;
+      <description>&lt;div id=&#34;introduction&#34; class=&#34;section level2&#34;&gt;
 &lt;h2&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;Maybe some of you (in my huge audience) have the bad luck of being allergic to pollen like myself. Since mid-January to the end of June I have to live very close to my antihistamines. Here in Madrid where I live health authorities issue newsletters (by email) with observations and forecast.&lt;/p&gt;
 &lt;p&gt;Although the service has some deficiencies (like not being available in weekends and fairy days) I found it useful, but how good are the forecasts provided? Let’s take a look.&lt;/p&gt;
@@ -583,10 +639,7 @@ SeriePredicciones &amp;lt;- function(tipo=&amp;quot;CUPR&amp;quot;){
       <pubDate>Sat, 20 Oct 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/10/20/developing-a-package-to-analyze-data-of-the-hospital-morbidity-survey/</guid>
-      <description>
-
-
-&lt;div id=&#34;introduction&#34; class=&#34;section level2&#34;&gt;
+      <description>&lt;div id=&#34;introduction&#34; class=&#34;section level2&#34;&gt;
 &lt;h2&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;This post is going to be the most ambitious one so far. Months ago I decided to develope a R package from scratch to learn a little about the process. So I dug up some code I wrote and I got to the work. And of course, for a job like that you want to work properly so I followed &lt;a href=&#34;http://r-pkgs.had.co.nz/&#34;&gt;R packages by Hadley Wickham&lt;/a&gt;&lt;/p&gt;
 &lt;/div&gt;
@@ -723,10 +776,7 @@ plot(g4)&lt;/code&gt;&lt;/pre&gt;
       <pubDate>Tue, 16 Oct 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/10/16/text-mining-in-r-a-different-approach-to-the-iliad/</guid>
-      <description>
-
-
-&lt;style&gt;
+      <description>&lt;style&gt;
   .col1 {
     columns: 1 400px;         /* number of columns and width in pixels*/
     -webkit-columns: 1 400px; /* chrome, safari */
@@ -1707,10 +1757,7 @@ fair
       <pubDate>Fri, 05 Oct 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/10/05/one-tweet-leads-to-some-r-work-about-births/</guid>
-      <description>
-
-
-&lt;p&gt;This new post was born because of my curiosity about this tweet:&lt;/p&gt;
+      <description>&lt;p&gt;This new post was born because of my curiosity about this tweet:&lt;/p&gt;
 &lt;blockquote class=&#34;twitter-tweet&#34; data-lang=&#34;es&#34;&gt;
 &lt;p lang=&#34;en&#34; dir=&#34;ltr&#34;&gt;
 Italy 1960-2014: Big drop in annual number of births, big increase in ages of mothers. &lt;a href=&#34;https://twitter.com/hashtag/Italy?src=hash&amp;amp;ref_src=twsrc%5Etfw&#34;&gt;#Italy&lt;/a&gt; &lt;a href=&#34;https://twitter.com/hashtag/fertility?src=hash&amp;amp;ref_src=twsrc%5Etfw&#34;&gt;#fertility&lt;/a&gt; &lt;a href=&#34;https://t.co/QGT0AnA3IU&#34;&gt;pic.twitter.com/QGT0AnA3IU&lt;/a&gt;
@@ -1846,8 +1893,7 @@ plot(g3)&lt;/code&gt;&lt;/pre&gt;
       <pubDate>Wed, 03 Oct 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/10/03/funny-facts-about-borrowed-stuff-in-madrid-public-libraries/</guid>
-      <description>
-&lt;script src=&#34;/rmarkdown-libs/htmlwidgets/htmlwidgets.js&#34;&gt;&lt;/script&gt;
+      <description>&lt;script src=&#34;/rmarkdown-libs/htmlwidgets/htmlwidgets.js&#34;&gt;&lt;/script&gt;
 &lt;script src=&#34;/rmarkdown-libs/jquery/jquery.min.js&#34;&gt;&lt;/script&gt;
 &lt;link href=&#34;/rmarkdown-libs/dygraphs/dygraph.css&#34; rel=&#34;stylesheet&#34; /&gt;
 &lt;script src=&#34;/rmarkdown-libs/dygraphs/dygraph-combined.js&#34;&gt;&lt;/script&gt;
@@ -1967,10 +2013,7 @@ head(top.autores)&lt;/code&gt;&lt;/pre&gt;
       <pubDate>Wed, 26 Sep 2018 00:00:00 +0000</pubDate>
       
       <guid>/2018/09/26/scrapping-boe-in-search-of-post-election-designations/</guid>
-      <description>
-
-
-&lt;p&gt;Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of dessignations in the highest levels of administration.&lt;/p&gt;
+      <description>&lt;p&gt;Anyone with little contact with spanish adminstration, or just with interest in politics, knows that after a major change in the party ruling the goverment goes an important amount of dessignations in the highest levels of administration.&lt;/p&gt;
 &lt;p&gt;I want to quantify this by counting the dessignations and cessations published in &lt;a href=&#34;www.boe.es&#34;&gt;BOE&lt;/a&gt; (Official State Gazette) with R.&lt;/p&gt;
 &lt;pre class=&#34;r&#34;&gt;&lt;code&gt;suppressPackageStartupMessages(library(XML))
 suppressPackageStartupMessages(library(ggplot2))

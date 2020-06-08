@@ -1,0 +1,77 @@
+---
+title: "Building a search page over large documente dataset based in elasticsearch"
+author: "rmm"
+date: '2020-06-08'
+slug: building-a-search-page-over-large-documente-dataset-based-in-elasticsearch
+tags: []
+categories: elastic
+---
+
+During these weeks of lockdown everyone in data science has been looking for some dataset to play around. In my particular case I found ParlSpeech V2 ^[Rauh, Christian; Schwalbach, Jan, 2020, "The ParlSpeech V2 data set: Full-text corpora of 6.3 million parliamentary speeches in the key legislative chambers of nine representative democracies", https://doi.org/10.7910/DVN/L4OAKN, Harvard Dataverse, V1]. ParlSpeech V2 contains complete full-text vectors of more than 6.3 million parliamentary speeches in the key legislative chambers of Austria, the Czech Republic, Germany, Denmark, the Netherlands, New Zealand, Spain, Sweden, and the United Kingdom, covering periods between 21 and 32 years. Meta-data include information on date, speaker, party, and partially agenda item under which a speech was held. The accompanying release note provides a more detailed guide to the data.
+
+This dataset reminded me of [*_VERBA VOLANT_*](https://verba.civio.es/) from Civio, in this beatufil data visualization you can search words in the a dataset containing the news broadcasted in TVE, the spanish public television. 
+
+Then I thought about doing something similar and in their public repository I found out that they used [*_Elastic_*](https://www.elastic.co/es/), *_Elastic_* is an open source engine for documental texts. *_Elastic_* offers their own cloud service (free during the first 14 days). So I decided to get my hands dirty with *_Elastic_* and *_R_*.
+
+Once I set up my own *_Elastic Cloud_* account, I populated it using *elastic* package in R
+
+```{r, echo=TRUE, eval=FALSE}
+discursos <- readRDS("Corp_Congreso_V2.rds")
+x <- connect(host = "4fa108dc0e82435d94e6b71b7723d0be.uksouth.azure.elastic-cloud.com",port = 9243,user = "elastic",pwd = "*****************",transport_schema = "https")
+docs_bulk(x,discursos,index = "speechnumber")
+```
+
+And build a very simple shiny application with elastic capacities (so simple that it´s basically stripped off)
+
+ui.R
+
+```{r, echo=TRUE, eval=FALSE}
+
+library(elastic)
+library(dplyr)
+host <- "4fa108dc0e82435d94e6b71b7723d0be.uksouth.azure.elastic-cloud.com"
+port <- 9243
+usuario <- "elastic"
+password <- "**************************"
+x <- connect(host = host,port = port,user = usuario,pwd = password,transport_schema = "https")
+
+# Define UI for application that draws a histogram
+shinyUI(fluidPage(
+
+    # Application title
+    titlePanel("Buscador de términos en discursos del Congreso de los Diputados usando elastic"),
+
+    # Sidebar with a slider input for number of bins
+    textInput("termino", "Buscar", value = ""),
+    dataTableOutput('table')
+))
+
+```
+
+server.R
+
+```{r, echo=TRUE, eval=FALSE}
+library(shiny)
+library(DT)
+
+# Define server logic required to draw a histogram
+shinyServer(function(input, output) {
+    
+    output$table <- renderDataTable({
+        # if(input$termino!=""){
+            res <- elastic::Search(conn = x,index = "speechnumber",q = sprintf("text:%s",input$termino),source=c("speaker","date","text"),asdf = TRUE,size = 10000)
+        # } else {
+            #res <- elastic::Search(conn = x,index = "speechnumber",q = "text:*",source=c("speaker","date","text"),asdf = TRUE)
+        # }
+        df <- res$hits$hits
+        df <- df %>% dplyr::select(starts_with("_source"))
+        colnames(df) <- gsub(pattern = "_source.",replacement = "",x = colnames(df))
+        df
+        })
+    
+})
+
+```
+
+I've deployed my (very simple) application to [shinyapps, you can find it here](https://rafaelmenmell.shinyapps.io/politikon/). I think *_Elastic_*
+ and *_Kibana_* are amazing tools and I've enjoyed the time I've spent learning a little bit of them.
